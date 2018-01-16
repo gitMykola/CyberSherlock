@@ -1,0 +1,16 @@
+{
+  "app":{
+    "name": "Cyber Sherlock",
+    "host": "http://localhost",
+    "mode": 0,
+    "log": {
+      "console": 1,
+      "file": 0
+    }
+  },
+  "db":{
+    "name": "cyber",
+    "host": "localhost",
+    "port": 27013
+  }
+}
