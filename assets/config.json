@@ -3,13 +3,17 @@
     "name": "Cyber Sherlock",
     "host": "http://localhost",
     "mode": 0,
+    "path": "/home/mykola/PhpstormProjects/CyberSherlock",
     "log": {
       "console": 1,
-      "file": 0
+      "file": 1,
+      "path": "/home/mykola/PhpstormProjects/CyberSherlock/Log"
     }
   },
   "db":{
     "name": "cyber",
+    "user": "mongoCyber",
+    "password": "a557dbfd4be7eb7d135290643d41ec27",
     "host": "localhost",
     "port": 27013
   }
