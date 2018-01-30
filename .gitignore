@@ -1,3 +1,13 @@
 # Created by .ignore support plugin (hsz.mobi)
 /Docs/
 /Log/
+.idea/CyberSherlock.iml
+.idea/fileTemplates/
+.idea/inspectionProfiles/
+.idea/jsLibraryMappings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/watcherTasks.xml
+.idea/workspace.xml
+node_modules/
+
