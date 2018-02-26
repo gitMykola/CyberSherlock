@@ -1,4 +1,4 @@
-let express = require('express'),
+const express = require('express'),
     bodyParser = require('body-parser'),
     app = express(),
     routes = require(__dirname + '/routes/router'),
@@ -9,6 +9,24 @@ let express = require('express'),
     rfs = require('rotating-file-stream'),
     Log = require('./lib/log');
     //db = require('./lib/db');
+
+const services = config.services;
+const { fork } = require('child_process');
+for (let i = 0; i < services.length; i++) {
+    services[i].instance = fork(__dirname + '/services/'
+    + services[i].script);
+    services[i].instance.on('data', data => {
+        let msg = JSON.parse(data);
+        if (msg.state === 'start')
+            console.log('Service ' + services[i].name + ' start. \n ' + msg.message);
+        if (msg.state === 'stop') {
+            console.log(msg.message);
+            setTimeout(() => {
+                console.log('Try start again...');
+            }, 20 * 1000);
+        }
+    });
+}
 
 const logPath = __dirname + '/Log';
 fs.existsSync(logPath) || fs.mkdirSync(logPath);
@@ -21,7 +39,6 @@ const accessLogStream = rfs('access.log',
 //db();
 app.use(morgan('combined', {stream: accessLogStream}));
 app.use(bodyParser.json());
-//app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 app.use('/', routes);
 

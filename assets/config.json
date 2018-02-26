@@ -1,5 +1,5 @@
 {
-  "app":{
+  "app": {
     "name": "Cyber Sherlock",
     "host": "http://localhost",
     "mode": 0,
@@ -10,11 +10,31 @@
       "path": "/home/mykola/PhpstormProjects/CyberSherlock/Log"
     }
   },
-  "db":{
+  "db": {
     "name": "cyber",
     "user": "mongoCyber",
     "password": "a557dbfd4be7eb7d135290643d41ec27",
     "host": "localhost",
     "port": 27013
-  }
+  },
+  "services": [
+    {
+      "name": "auth",
+      "script": "auth.service.js",
+      "host": "localhost",
+      "port": "9000"
+    },
+    {
+      "name": "user",
+      "script": "user.service.js",
+      "host": "localhost",
+      "port": "9001"
+    },
+    {
+      "name": "task",
+      "script": "task.service.js",
+      "host": "localhost",
+      "port": "9002"
+    }
+  ]
 }
