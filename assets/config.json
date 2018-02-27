@@ -8,6 +8,10 @@
       "console": 1,
       "file": 1,
       "path": "/home/mykola/PhpstormProjects/CyberSherlock/Log"
+    },
+    "services": {
+      "portPool": [9000, 10000],
+      "checkInterval": 600000
     }
   },
   "db": {
@@ -16,25 +20,5 @@
     "password": "a557dbfd4be7eb7d135290643d41ec27",
     "host": "localhost",
     "port": 27013
-  },
-  "services": [
-    {
-      "name": "auth",
-      "script": "auth.service.js",
-      "host": "localhost",
-      "port": "9000"
-    },
-    {
-      "name": "user",
-      "script": "user.service.js",
-      "host": "localhost",
-      "port": "9001"
-    },
-    {
-      "name": "task",
-      "script": "task.service.js",
-      "host": "localhost",
-      "port": "9002"
-    }
-  ]
+  }
 }

@@ -7,24 +7,58 @@ const express = require('express'),
     fs = require('fs'),
     morgan = require('morgan'),
     rfs = require('rotating-file-stream'),
-    Log = require('./lib/log');
-    //db = require('./lib/db');
+    Log = require('./lib/log'),
+    takePort = require('./lib/takeFreePort'),
+    runningServices = [];
 
-const services = config.services;
+function checkServices () {
+    Log('Scan services...');
+    fs.readdir(__dirname + '/services/', (err, files) => {
+        let port = config.app.services.portPool[0];
+        files.forEach(file => {
+            const serv = file.split('.');
+            if (serv[0]
+                    && serv[1] === 'service'
+                    && serv[2] === 'js'
+                    && !serv[3]
+                    && runningServices
+                        .filter(rSrv => rSrv.name === serv[0]).length === 0)
+                takePort(port)
+                    .then(freePort => startService({
+                        name: serv[0],
+                        script: file,
+                        host: 'localhost',
+                        port: freePort
+                    }))
+                    .catch(err => Log(err))
+        })
+    });
+}
+if (config.app.mode) {
+    setInterval(() => checkServices(), config.app.services.checkInterval);
+} else {
+    setInterval(() => checkServices(), 30 * 1000);
+}
+//const services = require(__dirname + '/services/services').services;
 const { fork } = require('child_process');
-for (let i = 0; i < services.length; i++) {
-    services[i].instance = fork(__dirname + '/services/'
-    + services[i].script);
-    services[i].instance.on('data', data => {
-        let msg = JSON.parse(data);
-        if (msg.state === 'start')
-            console.log('Service ' + services[i].name + ' start. \n ' + msg.message);
-        if (msg.state === 'stop') {
-            console.log(msg.message);
-            setTimeout(() => {
-                console.log('Try start again...');
-            }, 20 * 1000);
-        }
+/*let i = 0;
+while (i < services.length) {
+    startService(services[i]);
+    i++;
+}*/
+function startService (srv) {
+    const service = srv,
+    serv = fork(__dirname + '/services/service.starter.js',
+        [JSON.stringify(service)]);
+    serv.on('message', msg => {
+        runningServices.push(service);
+        Log(msg.message);
+    });
+    serv.on('exit', () => {
+        Log('Service ' + service.name + ' stop!');
+        const newRun = runningServices.filter(srv => srv.name !== service.name);
+        while (runningServices.length) runningServices.shift();
+        newRun.forEach(serv => runningServices.push(serv));
     });
 }
 

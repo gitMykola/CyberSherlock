@@ -1,6 +1,8 @@
 const express = require('express'),
     Log = require('../lib/log'),
+    xhr = require('../lib/xhr'),
     router = express.Router(),
+    services = require('../assets/config').services,
     invalidRequest = {
         jsonrpc: '2.0',
         error: {
@@ -20,15 +22,14 @@ const express = require('express'),
     };
 
 router.get('/', (req, res)=>{
-    res.status(503);
     Log('GET request', 0);
     res.status(503).json(Object.assign(invalidRequest, {id: null}));
 });
 router.post('/', (req, res)=>{
     selectInterface(req.body)
         .then(result => {
-            res.status(200)
-                .json(Object.assign({}, result));
+            res.status(result.error ? 503 : 200)
+                .json(Object.assign(requestDone, result));
         });
 });
 
@@ -45,12 +46,16 @@ const action = {
     },
     user: (body) => {
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve(Object.assign(requestDone, {
-                    result: 'User RPC',
-                    id: body.id
-                }));
-            }, 1);
+            xhr({
+                body: body
+            })
+                .then(result => resolve(result))
+                .catch(err => resolve({
+                    error: {
+                        code: -32000,
+                        message: err
+                    }
+                }))
         })
     },
     auth: (body) => {
@@ -83,7 +88,9 @@ const action = {
         }
         try {
             const methodPrefix = body.method.split('_')[0];
-            return action[methodPrefix] ? await action[methodPrefix](body)
+            return services
+                .filter(el => el.name = body.method.split('_')[0])
+                .length ? await action[methodPrefix](body)
                 : Object.assign(invalidMethod, {id: body.id});
         } catch (e) {
             Log('Bad method. ' + e.message, 0);
