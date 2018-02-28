@@ -9,12 +9,16 @@ const express = require('express'),
     rfs = require('rotating-file-stream'),
     Log = require('./lib/log'),
     takePort = require('./lib/takeFreePort'),
-    runningServices = [];
+    runningServices = [],
+    { fork } = require('child_process');
 
+/********************************
+ * Start Services
+ * */
 function checkServices () {
     Log('Scan services...');
     fs.readdir(__dirname + '/services/', (err, files) => {
-        let port = config.app.services.portPool[0];
+        let pool = config.app.services.portPool;
         files.forEach(file => {
             const serv = file.split('.');
             if (serv[0]
@@ -23,29 +27,21 @@ function checkServices () {
                     && !serv[3]
                     && runningServices
                         .filter(rSrv => rSrv.name === serv[0]).length === 0)
-                takePort(port)
+                takePort(pool, Log)
                     .then(freePort => startService({
                         name: serv[0],
                         script: file,
-                        host: 'localhost',
+                        host: config.app.services.protocol +
+                            '://' + config.app.services.ipPool[0],
                         port: freePort
                     }))
                     .catch(err => Log(err))
         })
     });
 }
-if (config.app.mode) {
-    setInterval(() => checkServices(), config.app.services.checkInterval);
-} else {
-    setInterval(() => checkServices(), 30 * 1000);
-}
-//const services = require(__dirname + '/services/services').services;
-const { fork } = require('child_process');
-/*let i = 0;
-while (i < services.length) {
-    startService(services[i]);
-    i++;
-}*/
+checkServices();
+setInterval(() => checkServices(), config.app.mode ?
+    config.app.services.checkInterval : 30 * 1000);
 function startService (srv) {
     const service = srv,
     serv = fork(__dirname + '/services/service.starter.js',
@@ -62,6 +58,10 @@ function startService (srv) {
     });
 }
 
+app.use(function(req,res,next){
+    req.services = runningServices;
+    next();
+});
 const logPath = __dirname + '/Log';
 fs.existsSync(logPath) || fs.mkdirSync(logPath);
 const accessLogStream = rfs('access.log',
@@ -69,8 +69,6 @@ const accessLogStream = rfs('access.log',
         interval: '1d',
         path: logPath
     });
-// Connect to MongoDB
-//db();
 app.use(morgan('combined', {stream: accessLogStream}));
 app.use(bodyParser.json());
 app.use(cors());

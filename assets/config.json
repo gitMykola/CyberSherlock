@@ -10,8 +10,10 @@
       "path": "/home/mykola/PhpstormProjects/CyberSherlock/Log"
     },
     "services": {
+      "ipPool": ["127.0.0.1"],
       "portPool": [9000, 10000],
-      "checkInterval": 600000
+      "checkInterval": 600000,
+      "protocol": "http"
     }
   },
   "db": {
