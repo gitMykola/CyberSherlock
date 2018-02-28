@@ -93,4 +93,35 @@ describe('User, profile models test',()=> {
         });
         //done();
     });
+    it('User Create', done => {
+        db();
+        const nu = new User();
+        let hash = nu.hash('13245678');
+        nu.hash('12345678')
+            .then(hash => {
+                nu._id = nu.getId();
+                nu.password = hash;
+                nu.emai = 'nike@nk.co';
+                nu.phon = null;
+                return nu.save();
+            })
+            .then(err => {
+                console.dir(err);
+                console.dir(nu._id);
+                console.dir(nu._doc._id.toString());done();
+            })
+            .catch(e => console.dir(e));
+
+    });
+    it('User FindOne', done => {
+        db();
+        User.findOne({email: 'boob@gmail.com'})
+            .then(user => {
+                console.dir(user);done();
+            })
+            .catch(e => {
+                console.dir(e);done();
+            });
+
+    });
 });

@@ -2,7 +2,6 @@ const express = require('express'),
     Log = require('../lib/log'),
     xhr = require('../lib/xhr'),
     router = express.Router(),
-    routes = require('./routes'),
     invalidRequest = {
         jsonrpc: '2.0',
         error: {
@@ -45,9 +44,10 @@ router.post('/', (req, res)=>{
 
 const action = (service, req) => {
         return new Promise(resolve => {
-            const methodPrefix = req.body.method.split('_')[0];
-            if (routes.close.indexOf(req.body.method) >= 0) {
-                const auth = req.services.filter(el => el.name === 'auth');
+            const methodPrefix = req.body.method.split('_')[0],
+                authPrefix = req.body.method.split('_')[1];
+            if (authPrefix === 'auth') {
+                const auth = req.services.filter(el => el.name === authPrefix);
                 if (auth.length) {
                     xhr({
                         url: auth[0].host + ':' + auth[0].port,

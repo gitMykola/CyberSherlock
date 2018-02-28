@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 const Schema = mongoose.Schema,
     ProfileModelSchema = new Schema({
-        user: [{type: Schema.Types.ObjectId, ref: 'User'}],
+        user: {type: Schema.Types.ObjectId, ref: 'User'},
+        name: {type: String, index: true},
         avatar: {type: Schema.Types.ObjectId},
         primaryEmail: {type: Schema.Types.ObjectId, index: true},
         rating: {type: Number, index: true},
