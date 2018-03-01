@@ -21,6 +21,15 @@
     "user": "mongoCyber",
     "password": "a557dbfd4be7eb7d135290643d41ec27",
     "host": "localhost",
-    "port": 27013
+    "port": 27017
+  },
+  "email":{
+    "defaultSubject": "TRIUMF SERVICE",
+    "defaultSenderEmail":"mborodyn@ecoengineer.in.ua",
+    "smtpHost": "freemail.freehost.com.ua",
+    "smtpPort": 465,
+    "smtpSecure": true,
+    "smtpUser": "mborodyn@ecoengineer.in.ua",
+    "smtpPass": "borMyk7"
   }
 }

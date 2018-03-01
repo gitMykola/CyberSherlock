@@ -96,7 +96,7 @@ const action = (service, req) => {
             return srv.length ? await action(srv[0], req)
                 : Object.assign(invalidMethod, {id: req.body.id});
         } catch (e) {
-            Log('Bad method. ' + e.message, 0);
+            Log('Bad method. ' + e, 0);
             return invalidRequest;
         }
 
