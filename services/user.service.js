@@ -1,4 +1,4 @@
-const config = require('../assets/config'),
+const config = require('../config'),
       Log = require('../lib/log'),
       Db = require('../lib/db'),
       XHR = require('../lib/xhr'),
@@ -76,6 +76,10 @@ User.prototype.user_create_local = function (params) {
         }
     })
 };
+User.prototype.user_create_facebook = function (params) {};
+User.prototype.user_create_google = function () {};
+User.prototype.user_create_linked = function () {};
+User.prototype.user_create_twitter = function () {};
 /**
  * @summary Create new user with email.
  * @params [

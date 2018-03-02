@@ -1,4 +1,4 @@
-const config = require('../assets/config'),
+const config = require('../config'),
     Log = require('../lib/log'),
     Db = require('../lib/db'),
     Mailer = require('nodemailer'),

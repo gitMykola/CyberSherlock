@@ -1,18 +1,23 @@
 const Jwt = require('jsonwebtoken'),
-    config = require('../assets/config'),
+    config = require('../config'),
     Log = require('../lib/log'),
     Db = require('../lib/db'),
     Users = require('../models/user'),
     Emails = require('../models/email'),
     Phones = require('../models/phone');
-
+/**
+ * @summary Auth service class
+ */
 function Auth () {
     this._init();
 }
+/**
+ * @summary Init class
+ */
 Auth.prototype._init = function () {
     this.name = 'auth';
     this.jwt = Jwt;
-    this.tokenExp = config.app.tokenExp;
+    this.tokenExp = config.auth.tokenExp;
         this.log = Log;
         this.db = Db;
         this.dbState = this.db.connect({
@@ -73,7 +78,14 @@ Auth.prototype.auth_local_email = function (params) {
                 })
                 .then(pverf => {
                     if (pverf) {
-                        return resolve(pverf);
+                        result = pverf;
+                        return this._getJWT(pverf.user.id);
+                    } else return reject();
+                })
+                .then(token => {
+                    if (token) {
+                        result.user.token = token;
+                        return resolve(result);
                     } else return reject();
                 })
                 .catch(e => {
@@ -150,12 +162,45 @@ Auth.prototype.auth_auth_facebook = function (params) {};
 Auth.prototype.auth_auth_google = function (params) {};
 Auth.prototype.auth_auth_linked = function (params) {};
 Auth.prototype.auth_auth_twitter = function (params) {};
-Auth.prototype.auth_auth = function (params) {
-    return new Promise(resolve => {
-        this.result = params[0] === '123'
-            ? {auth: true}
-            : {auth: false, message: 'token wrong.'};
-        resolve(this.result);
+/**
+ * @summary Authenticate user by token.
+ * @params [
+ *          token - string, JWT
+ *          id - string, user id
+ *          ] Array - input params.
+ * @return Promise(
+ *                  resolve - {
+ *                  auth: boolean, ok/not ok
+ *                  }
+ *              )
+ */
+Auth.prototype.auth_authenticate = function (params) {
+    return new Promise( (resolve, reject) => {
+        try {
+            const pars = {};
+            pars.token = params[0];
+            pars.id = params[1];
+            this._paramsVerify(pars)
+                .then(() => {
+                    return this._verifyJWT(pars.token, pars.id);
+                })
+                .then(id => {
+                    if (id) {
+                        return (id.id && id.id === pars.id) ? resolve({
+                            auth: true
+                            })
+                            : resolve({
+                                auth: false,
+                                message: id.err
+                            });
+                    } else return reject();
+                })
+                .catch(e => {
+                    return reject(e);
+                })
+        } catch (e) {
+            return reject(e);
+        }
     })
 };
 Auth.prototype._getJWT = function (id) {
@@ -175,12 +220,17 @@ Auth.prototype._getJWT = function (id) {
 Auth.prototype._verifyJWT = function (token, id) {
     return new Promise( (resolve, reject) => {
         try {
-            const token = this.jwt.sign({
-                id: id
-            }, this.key, {
-                expiresIn: this.tokenExp
+            this.jwt.verify(token, this.key, (err, data) => {
+                if (err) {
+                    return resolve({
+                        err: err.message
+                    });
+                } else {
+                    return resolve({
+                        id:data.id
+                    });
+                }
             });
-            resolve(token);
         } catch (e) {
             return reject(e);
         }
@@ -243,6 +293,9 @@ Auth.prototype._paramsVerify = function (params) {
             },
             id: (value) => {
                 return value && value.length > 0 && value.length < 256;
+            },
+            token: (value) => {
+                return value && value.length > 0 && value.length < 65000;
             }
         };
         try {

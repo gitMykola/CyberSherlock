@@ -1,6 +1,6 @@
 const should = require('should'),
     db = require('../../lib/db'),
-    config = require('../../assets/config'),
+    config = require('../../config'),
     User = require('../../models/user'),
     Email = require('../../models/email'),
     Profile = require('../../models/profile'),

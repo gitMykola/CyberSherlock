@@ -14,8 +14,7 @@
       "portPool": [9000, 10000],
       "checkInterval": 600000,
       "protocol": "http"
-    },
-    "tokenExp": 3600
+    }
   },
   "db": {
     "name": "cyber",
@@ -32,5 +31,18 @@
     "smtpSecure": true,
     "smtpUser": "mborodyn@ecoengineer.in.ua",
     "smtpPass": "borMyk7"
+  },
+  "auth": {
+    "tokenExp": 3600,
+    "facebook": {
+      "clientId": "170302263538571",
+      "clientSecret": "d5a3b1add21f81dcfab881d83a422748",
+      "callbackURL": "",
+      "profileURL": "https://graph.facebook.com/v2.5/me?fields=first_name,last_name,email",
+      "profileFields": ["id", "email", "name"]
+    },
+    "google": {},
+    "linked": {},
+    "twitter": {}
   }
 }

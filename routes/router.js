@@ -52,8 +52,8 @@ const action = (service, req) => {
                     xhr({
                         url: auth[0].host + ':' + auth[0].port,
                         body: {
-                            method: 'auth_auth',
-                            params: [req.headers['a-token'] || ''],
+                            method: 'auth_authenticate',
+                            params: [req.headers['a-token'] || '', req.body.id],
                             id: req.body.id
                         }
                     })
