@@ -4,20 +4,26 @@ const mongoose = require('mongoose'),
 const Schema = mongoose.Schema,
     UserModelSchema = new Schema({
         password: {type: String, index: true},
-        email: {type: String, index: true},
-        phone: {type: String, index: true},
-        name: {type: String, index: true},
+        name: {type: String, default: ''},
         facebook: {
-            id: {type: String, index: true}
+            id: String,
+            token: String,
+            name: String
         },
         google: {
-            id: {type: String, index: true}
+            id: String,
+            token: String,
+            name: String
         },
         linked: {
-            id: {type: String, index: true}
+            id: String,
+            token: String,
+            name: String
         },
         twitter: {
-            id: {type: String, index: true}
+            id: String,
+            token: String,
+            name: String
         },
         created: {type: Date, index: true, default: Date.now()},
         status: {type: Number, index: true, enum: [0, 1, 2], default: 0}
@@ -25,7 +31,7 @@ const Schema = mongoose.Schema,
 UserModelSchema.methods.hash = (password) => {
     return new Promise ((resolve, reject) => {
         try {
-            resolve(bcrypt.hashSync(password, 10));
+            resolve(bcrypt.hashSync(password, 8));
         } catch (e) {
             reject(e.message);
         }

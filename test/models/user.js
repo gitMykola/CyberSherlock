@@ -1,5 +1,6 @@
 const should = require('should'),
     db = require('../../lib/db'),
+    config = require('../../assets/config'),
     User = require('../../models/user'),
     Profile = require('../../models/profile'),
     mongoose = require('mongoose');
@@ -114,14 +115,24 @@ describe('User, profile models test',()=> {
 
     });
     it('User FindOne', done => {
-        db();
-        User.findOne({email: 'boob@gmail.com'})
-            .then(user => {
-                console.dir(user);done();
-            })
-            .catch(e => {
-                console.dir(e);done();
-            });
+        const stateDB = db.connect({
+            db: config.db,
+            log: console.log
+        });
+        if (stateDB) {
+            User.find({email: 'mykola_borodyn@ecoengineer.in.ua'})
+                .then(user => {
+                    console.dir(user[0].email);
+                    done();
+                })
+                .catch(e => {
+                    console.dir(e);
+                    done();
+                });
+        } else {
+            console.log('Db error.');
+            done();
+        }
 
     });
 });

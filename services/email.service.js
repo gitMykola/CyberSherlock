@@ -42,9 +42,9 @@ Email.prototype.state = function () {
 Email.prototype.email_send_confirmation_email = function (params) {
     return new Promise((resolve, reject) => {
         const pars = {};
-        pars.id = params[0];
-        pars.email = params[1];
-        pars.code = params[2];
+        pars.id = params[0] || '';
+        pars.email = params[1] || '';
+        pars.code = params[2] || '';
         this._paramsVerify(pars)
             .then(() => {
                 return this.user.findOne({_id: new this.db.id(pars.id)});
@@ -53,6 +53,7 @@ Email.prototype.email_send_confirmation_email = function (params) {
                 if (user) {
                     return this.email.findOne({
                         email: pars.email,
+                        owner: user._id,
                         status: false
                     });
                 } else {
@@ -69,7 +70,7 @@ Email.prototype.email_send_confirmation_email = function (params) {
                         html: '<h3>Code: ' + pars.code + '<h3>'
                     })
                 } else {
-                    return reject('No email: ' + pars.email + ' in database!');
+                    return reject('No unconfirmed email: ' + pars.email + ' in database!');
                 }
             })
             .then(resp => {
@@ -79,7 +80,7 @@ Email.prototype.email_send_confirmation_email = function (params) {
                     return reject('Email not sended.');
                 }
             })
-            .catch(e => {console.dir(e);
+            .catch(e => {
                 return reject(e);
             })
     })
