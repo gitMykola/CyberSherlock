@@ -8,9 +8,15 @@ const config = require('../assets/config'),
       Phones = require('../models/phone'),
       Profiles = require('../models/profile'),
       Tasks = require('../models/task');
+/**
+ * @summary User service class
+ */
 function User () {
     this._init();
 }
+/**
+ * @summary Init class
+ */
 User.prototype._init = function () {
     this.name = 'user';
     this.log = Log;
@@ -70,6 +76,18 @@ User.prototype.user_create_local = function (params) {
         }
     })
 };
+/**
+ * @summary Create new user with email.
+ * @params [
+ *          password - string, user password
+ *          email - string, user email
+ *          ] Array - input params.
+ * @return Promise(
+ *                  resolve - {
+ *                  sentEmailConfirmation: boolean, ok/not ok
+ *                  }
+ *              )
+ */
 User.prototype.user_auth_create_email = function (params) {
     return new Promise( (resolve, reject) => {
         try {
@@ -128,6 +146,18 @@ User.prototype.user_auth_create_email = function (params) {
         }
     })
 };
+/**
+ * @summary Create new user with phone.
+ * @params [
+ *          password - string, user password
+ *          phone - string, user phone number
+ *          ] Array - input params.
+ * @return Promise(
+ *                  resolve - {
+ *                  sentPhoneConfirmation: boolean, ok/not ok
+ *                  }
+ *              )
+ */
 User.prototype.user_auth_create_phone = function (params) {
     return new Promise( (resolve, reject) => {
         try {
@@ -184,6 +214,12 @@ User.prototype.user_auth_create_phone = function (params) {
         } catch (e) {
             return reject(e)
         }
+    })
+};
+User.prototype.user_auth_update = function (params) {
+    return new Promise(resolve => {
+        this.result = 'User updated';
+        resolve(this.result);
     })
 };
 User.prototype._create_user_local_with_email = function (pars) {
@@ -460,12 +496,6 @@ User.prototype._send_phone_confirmation = function (id, phone, code) {
 User.prototype._create_user_third = function (params) {
     return new Promise((resolve, reject) => {})
 };
-User.prototype.user_auth_update = function (params) {
-    return new Promise(resolve => {
-        this.result = 'User updated';
-        resolve(this.result);
-    })
-};
 User.prototype._paramsVerify = function (params) {
     return new Promise( (resolve, reject) => {
         const verify = {
@@ -499,6 +529,9 @@ User.prototype._paramsVerify = function (params) {
             return reject(e.message);
         }
     })
+};
+User.prototype.setKey = function (key) {
+    this.key = key;
 };
 
 module.exports = User;

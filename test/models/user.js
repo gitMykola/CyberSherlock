@@ -2,6 +2,7 @@ const should = require('should'),
     db = require('../../lib/db'),
     config = require('../../assets/config'),
     User = require('../../models/user'),
+    Email = require('../../models/email'),
     Profile = require('../../models/profile'),
     mongoose = require('mongoose');
 
@@ -114,15 +115,17 @@ describe('User, profile models test',()=> {
             .catch(e => console.dir(e));
 
     });
-    it('User FindOne', done => {
+    it('User some test', done => {
         const stateDB = db.connect({
             db: config.db,
             log: console.log
         });
         if (stateDB) {
-            User.find({email: 'mykola_borodyn@ecoengineer.in.ua'})
-                .then(user => {
-                    console.dir(user[0].email);
+            Email.find().populate('owner', 'password _id').exec()
+                .then(users => {
+                    users.forEach(user => console
+                        .log(user.email + ' \n'
+                            + user.owner.verifyPassword('') + '\n' + user.owner.password));
                     done();
                 })
                 .catch(e => {

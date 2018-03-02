@@ -148,4 +148,7 @@ Email.prototype._paramsVerify = function (params) {
         }
     })
 };
+Email.prototype.setKey = function (key) {
+    this.key = key;
+};
 module.exports = Email;

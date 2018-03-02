@@ -15,6 +15,7 @@ const express = require('express'),
 /********************************
  * Start Services
  * */
+const key = process.argv[process.argv.length - 1] || '010101';
 function checkServices () {
     Log('Scan services...');
     fs.readdir(__dirname + '/services/', (err, files) => {
@@ -33,7 +34,8 @@ function checkServices () {
                         script: file,
                         host: config.app.services.protocol +
                             '://' + config.app.services.ipPool[0],
-                        port: freePort
+                        port: freePort,
+                        key: key
                     }))
                     .catch(err => Log(err))
         })
@@ -80,7 +82,6 @@ app.use(function(req, res, next) {
     err.status = 404;
     next(err);
 });
-
 // error handler
 app.use(function(err, req, res, next) {
     // set locals, only providing error in development

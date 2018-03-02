@@ -37,10 +37,10 @@ UserModelSchema.methods.hash = (password) => {
         }
     })
 };
-UserModelSchema.methods.verifyPassword = (password) => {
+UserModelSchema.methods.verifyPassword = (password, hash) => {
     return new Promise ((resolve, reject) => {
         try {
-            resolve(bcrypt.compareSync(password, this.password));
+            resolve(bcrypt.compareSync(password, hash));
         } catch (e) {
             reject(e.message);
         }

@@ -14,7 +14,8 @@
       "portPool": [9000, 10000],
       "checkInterval": 600000,
       "protocol": "http"
-    }
+    },
+    "tokenExp": 3600
   },
   "db": {
     "name": "cyber",
