@@ -508,13 +508,13 @@ User.prototype._paramsVerify = function (params) {
             },
             email: (value) => {
                 return value && value.length < 256
-                && value.match
+                && null !== value.match
                     (/[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/);
             },
             phone: (value) => {
                 return value && value.length < 256
-                && value.match
-                    (/^\(*\+*[1-9]{0,3}\)*-*[1-9]{0,3}[-. /]*\(*[2-9]\d{2}\)*[-. /]*\d{3}[-. /]*\d{4} *e*x*t*\.* *\d{0,4}$/);
+                && null !== value.match
+                    (/^\+\d{12}$/);
             },
             third: (value) => {
                 return value && value.length > 0 && value.length < 50;
@@ -525,9 +525,12 @@ User.prototype._paramsVerify = function (params) {
         };
         try {
             const keys = Object.keys(params);
-            for (let i = 0; i < keys.length; i++)
+            for (let i = 0; i < keys.length; i++) {
                 if (!verify[keys[i]] || !verify[keys[i]](params[keys[i]]))
-                    reject('Wrong field ' + keys[i]);
+                {
+                    reject('Wrong field. ' + keys[i]);
+                }
+            }
             resolve();
         } catch (e) {
             return reject(e.message);

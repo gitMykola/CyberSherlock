@@ -182,7 +182,7 @@ Auth.prototype.auth_authenticate = function (params) {
             pars.id = params[1];
             this._paramsVerify(pars)
                 .then(() => {
-                    return this._verifyJWT(pars.token, pars.id);
+                    return this._verifyJWT(pars.token);
                 })
                 .then(id => {
                     if (id) {
@@ -208,7 +208,7 @@ Auth.prototype._getJWT = function (id) {
         try {
             const token = this.jwt.sign({
                 id: id
-            }, this.key, {
+            }, this._key, {
                 expiresIn: this.tokenExp
             });
             resolve(token);
@@ -217,10 +217,10 @@ Auth.prototype._getJWT = function (id) {
         }
     })
 };
-Auth.prototype._verifyJWT = function (token, id) {
+Auth.prototype._verifyJWT = function (token) {
     return new Promise( (resolve, reject) => {
         try {
-            this.jwt.verify(token, this.key, (err, data) => {
+            this.jwt.verify(token, this._key, (err, data) => {
                 if (err) {
                     return resolve({
                         err: err.message
@@ -280,13 +280,13 @@ Auth.prototype._paramsVerify = function (params) {
             },
             email: (value) => {
                 return value && value.length < 256
-                    && value.match
+                    && null !== value.match
                     (/[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/);
             },
             phone: (value) => {
                 return value && value.length < 256
-                    && value.match
-                    (/^\(*\+*[1-9]{0,3}\)*-*[1-9]{0,3}[-. /]*\(*[2-9]\d{2}\)*[-. /]*\d{3}[-. /]*\d{4} *e*x*t*\.* *\d{0,4}$/);
+                    && null !== value.match
+                    (/^\+\d{12}$/);
             },
             third: (value) => {
                 return value && value.length > 0 && value.length < 50;
@@ -310,7 +310,7 @@ Auth.prototype._paramsVerify = function (params) {
     })
 };
 Auth.prototype.setKey = function (key) {
-    this.key = key;
+    this._key = key;
 };
 
 module.exports = Auth;
