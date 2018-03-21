@@ -5,40 +5,39 @@ const express = require('express'),
     invalidRequest = {
         jsonrpc: '2.0',
         error: {
-            code: -32600,
+            code: 32600,
             message: 'Invalid Request'
         }
     },
     invalidMethod = {
         jsonrpc: '2.0',
         error: {
-            code: -32601,
+            code: 32601,
             message: 'Method not found'
         }
     },
     invalidAuth = {
         jsonrpc: '2.0',
         error: {
-            code: -32602
+            code: 32602
         }
     },
     invalidServiceAuth = {
         jsonrpc: '2.0',
         error: {
-            code: -32602,
+            code: 32603,
             message: 'Service auth not found'
         }
     };
 
 router.get('/', (req, res)=>{
     Log('GET request', 0);
-    res.status(503).json(Object.assign(invalidRequest, {id: null}));
+    res.json(Object.assign(invalidRequest, {id: null}));
 });
 router.post('/', (req, res)=>{
     selectInterface(req)
         .then(result => {
-            res.status(result.error ? 503 : 200)
-                .json(result);
+            res.json(result);
         });
 });
 

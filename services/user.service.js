@@ -2,6 +2,7 @@ const config = require('../config'),
       Log = require('../lib/log'),
       Db = require('../lib/db'),
       XHR = require('../lib/xhr'),
+      Utils = require('../lib/utils'),
       RandomString = require('randomstring'),
       Users = require('../models/user'),
       Emails = require('../models/email'),
@@ -26,12 +27,14 @@ User.prototype._init = function () {
             log: this.log
         });
     this.xhr = XHR;
+    this.utils = Utils;
     this.randomSTR = RandomString;
     this.user = Users;
     this.email = Emails;
     this.phone = Phones;
     this.profile = Profiles;
     this.task = Tasks;
+    this.google = config.auth.google;
 };
 /**
 * @summary Check service state
@@ -56,7 +59,7 @@ User.prototype.user_create_local = function (params) {
             pars.password = params[0] || '';
             if (params[1] && params[1].length) pars.email = params[1];
             if (params[2] && params[2].length) pars.phone = params[2];
-            this._paramsVerify(pars)
+            this.utils.verifyParams(pars)
                 .then(() => {
                     if (pars.email && pars.phone) {
                         return resolve(this
@@ -67,17 +70,55 @@ User.prototype.user_create_local = function (params) {
                     } else return resolve(this
                         ._create_user_local_with_phone(pars));
                 })
-                .catch(e => reject({
-                    status: false,
-                    error: e
-                }))
+                .catch(e => reject(e))
         } catch (e) {
-            reject(e.message);
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
         }
     })
 };
 User.prototype.user_create_facebook = function (params) {};
-User.prototype.user_create_google = function () {};
+/**
+ * @summary Create new user with google.
+ * @params [
+ *          string, google user id
+ *          string, google user access token
+ *          string, google user email
+ *          string(options), google user name
+ *          ] Array - input params.
+ * @return Promise(
+ *                  resolve - user object
+ *                  | reject - error object
+ *              )
+ */
+User.prototype.user_create_google = function (params) {
+    return new Promise((resolve, reject) => {
+        try {
+            const pars = {};
+            pars.g_id = params[0] || '';
+            pars.g_at = params[1] || '';
+            pars.email = params[2] || '';
+            if (params[3] && params[3].length) pars.name = params[3];
+            this.utils.verifyParams(pars)
+                .then(() => {
+                        return resolve(this
+                            ._create_user_google(pars));
+                })
+                .catch(e => {
+                    return reject(e)
+                })
+        } catch (e) {
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
+        }
+    })
+};
 User.prototype.user_create_linked = function () {};
 User.prototype.user_create_twitter = function () {};
 /**
@@ -98,7 +139,7 @@ User.prototype.user_auth_create_email = function (params) {
             const pars = {};
             pars.id = params[0];
             pars.email = params[1];
-            this._paramsVerify(pars)
+            this.utils.verifyParams(pars)
                 .then(() => {
                     return this.user.find({
                         _id: new this.db.id(pars.id)
@@ -146,7 +187,11 @@ User.prototype.user_auth_create_email = function (params) {
                     return reject(e);
                 })
         } catch (e) {
-            return reject(e)
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
         }
     })
 };
@@ -168,7 +213,7 @@ User.prototype.user_auth_create_phone = function (params) {
             const pars = {};
             pars.id = params[0];
             pars.phone = params[1];
-            this._paramsVerify(pars)
+            this.utils.verifyParams(pars)
                 .then(() => {
                     return this.user.find({
                         _id: new this.db.id(pars.id)
@@ -216,7 +261,11 @@ User.prototype.user_auth_create_phone = function (params) {
                     return reject(e);
                 })
         } catch (e) {
-            return reject(e)
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
         }
     })
 };
@@ -281,7 +330,9 @@ User.prototype._create_user_local_with_email = function (pars) {
                         });
                 } else return reject();
             })
-            .catch(e => reject(e));
+            .catch(e => {
+                return reject(e)
+            });
     })
 };
 User.prototype._create_user_local_with_phone = function (pars) {
@@ -339,7 +390,9 @@ User.prototype._create_user_local_with_phone = function (pars) {
                         });
                 } else return reject();
             })
-            .catch(e => reject(e));
+            .catch(e => {
+                return reject(e)
+            });
     })
 };
 User.prototype._create_user_local_with_email_phone = function (pars) {
@@ -442,6 +495,79 @@ User.prototype._create_user_local_with_email_phone = function (pars) {
                         });
                 } else return reject();
             })
+            .catch(e => {
+                return reject(e)
+            });
+    })
+};
+User.prototype._create_user_google = function (pars) {
+    return new Promise( (resolve, reject)=> {
+        const newUser = new this.user(),
+            newEmail = new this.email();
+        this.email.find({email: pars.email})
+            .then(emails => {
+                if (emails.length > 0) {
+                    let confirmed = null;
+                    emails.forEach(eml => {
+                        if (eml.status) confirmed = true;
+                    });
+                    if (confirmed) {
+                        return reject({
+                            status: false,
+                            error: 'Email busy.'
+                        });
+                    } else return this.utils.verifyGoogleAccessToken(pars);
+                } else {
+                    newEmail.primary = true;
+                    return this.utils.verifyGoogleAccessToken(pars);
+                }
+            })
+            .then(res => {
+                if (res) {
+                    return this.user.find({'google.id': pars.g_id});
+                } else return reject();
+            })
+            .then(users => {
+                if (users) {
+                    if (users.length === 0) {
+                        newUser.google.token = pars.g_at;
+                        newUser.google.id = pars.g_id;
+                        newUser.google.name = pars.name || '';
+                        return newUser.save();
+                    } else return reject({
+                        code: 32608,
+                        message: 'User exists.'
+                    });
+                } else return reject();
+            })
+            .then(user => {
+                if (user) {
+                    newEmail.owner = newUser._id;
+                    newEmail.email = pars.email;
+                    newEmail.code = this.randomSTR.generate(6);
+                    return newEmail.save();
+                } else return reject();
+            })
+            .then(email => {
+                if (email) {
+                    return this._send_email_confirmation(
+                        newUser._id,
+                        newEmail.email,
+                        newEmail.code
+                    )
+                } else return reject();
+            })
+            .then(sent => {
+                if (sent) {
+                    return resolve(Object.assign({
+                        status: 'success',
+                        user: {
+                            id: newUser._id,
+                            email: newEmail.email
+                        }
+                    }, sent));
+                } else return reject();
+            })
             .catch(e => reject(e));
     })
 };
@@ -499,43 +625,6 @@ User.prototype._send_phone_confirmation = function (id, phone, code) {
 };
 User.prototype._create_user_third = function (params) {
     return new Promise((resolve, reject) => {})
-};
-User.prototype._paramsVerify = function (params) {
-    return new Promise( (resolve, reject) => {
-        const verify = {
-            password: (value) => {
-                return value && value.length >= 8 && value.length < 256;
-            },
-            email: (value) => {
-                return value && value.length < 256
-                && null !== value.match
-                    (/[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/);
-            },
-            phone: (value) => {
-                return value && value.length < 256
-                && null !== value.match
-                    (/^\+\d{12}$/);
-            },
-            third: (value) => {
-                return value && value.length > 0 && value.length < 50;
-            },
-            id: (value) => {
-                return value && value.length > 0 && value.length < 256;
-            }
-        };
-        try {
-            const keys = Object.keys(params);
-            for (let i = 0; i < keys.length; i++) {
-                if (!verify[keys[i]] || !verify[keys[i]](params[keys[i]]))
-                {
-                    reject('Wrong field. ' + keys[i]);
-                }
-            }
-            resolve();
-        } catch (e) {
-            return reject(e.message);
-        }
-    })
 };
 User.prototype.setKey = function (key) {
     this.key = key;

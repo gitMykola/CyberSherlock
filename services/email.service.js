@@ -1,5 +1,6 @@
 const config = require('../config'),
     Log = require('../lib/log'),
+    Utils = require('../lib/utils'),
     Db = require('../lib/db'),
     Mailer = require('nodemailer'),
     Users = require('../models/user'),
@@ -22,6 +23,7 @@ Email.prototype._init = function () {
     this.user = Users;
     this.email = Emails;
     this.phone = Phones;
+    this.utils = Utils;
 };
 /**
  * @summary Check service state
@@ -45,7 +47,7 @@ Email.prototype.email_send_confirmation_email = function (params) {
         pars.id = params[0] || '';
         pars.email = params[1] || '';
         pars.code = params[2] || '';
-        this._paramsVerify(pars)
+        this.utils.verifyParams(pars)
             .then(() => {
                 return this.user.findOne({_id: new this.db.id(pars.id)});
             })
@@ -109,43 +111,6 @@ Email.prototype._send = function (email) {
                 })
             }
         });
-    })
-};
-Email.prototype._paramsVerify = function (params) {
-    return new Promise( (resolve, reject) => {
-        const verify = {
-            password: (value) => {
-                return value && value.length >= 8 && value.length < 256;
-            },
-            email: (value) => {
-                return value && value.length < 256
-                    && null !== value.match
-                    (/[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/);
-            },
-            phone: (value) => {
-                return value && value.length < 256
-                    && null !== value.match
-                    (/^\+\d{12}$/);
-            },
-            third: (value) => {
-                return value && value.length > 0 && value.length < 50;
-            },
-            id: (value) => {
-                return value && value.length > 0 && value.length < 256;
-            },
-            code: (value) => {
-                return value && value.length === 6;
-            }
-        };
-        try {
-            const keys = Object.keys(params);
-            for (let i = 0; i < keys.length; i++)
-                if (!verify[keys[i]] || !verify[keys[i]](params[keys[i]]))
-                    reject('Wrong field ' + keys[i]);
-            resolve();
-        } catch (e) {
-            return reject(e.message);
-        }
     })
 };
 Email.prototype.setKey = function (key) {

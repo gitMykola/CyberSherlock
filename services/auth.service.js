@@ -1,6 +1,7 @@
 const Jwt = require('jsonwebtoken'),
     config = require('../config'),
     Log = require('../lib/log'),
+    Utils = require('../lib/utils'),
     Db = require('../lib/db'),
     Users = require('../models/user'),
     Emails = require('../models/email'),
@@ -18,15 +19,16 @@ Auth.prototype._init = function () {
     this.name = 'auth';
     this.jwt = Jwt;
     this.tokenExp = config.auth.tokenExp;
-        this.log = Log;
-        this.db = Db;
-        this.dbState = this.db.connect({
-            db: config.db,
-            log: this.log
-        });
-        this.user = Users;
-        this.email = Emails;
-        this.phone = Phones;
+    this.log = Log;
+    this.db = Db;
+    this.dbState = this.db.connect({
+        db: config.db,
+        log: this.log
+    });
+    this.user = Users;
+    this.email = Emails;
+    this.phone = Phones;
+    this.utils = Utils;
 };
 /**
  * @summary Check service state
@@ -56,11 +58,10 @@ Auth.prototype.state = function () {
 Auth.prototype.auth_local_email = function (params) {
     return new Promise( (resolve, reject) => {
         try {
-            const user = new this.user(),
-                pars = {};
+            const pars = {};
             pars.password = params[0];
             pars.email = params[1];
-            this._paramsVerify(pars)
+            this.utils.verifyParams(pars)
                 .then(() => {
                     return this.email.find({
                         email: pars.email
@@ -92,7 +93,11 @@ Auth.prototype.auth_local_email = function (params) {
                     return reject(e);
                 })
         } catch (e) {
-            return reject(e);
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
         }
     });
 };
@@ -117,12 +122,11 @@ Auth.prototype.auth_local_email = function (params) {
 Auth.prototype.auth_local_phone = function (params) {
     return new Promise( (resolve, reject) => {
         try {
-            const user = new this.user(),
-            pars = {};
+            const pars = {};
             let result = {};
             pars.password = params[0];
             pars.phone = params[1];
-            this._paramsVerify(pars)
+            this.utils.verifyParams(pars)
                 .then(() => {
                     return this.phone.find({
                         phone: pars.phone
@@ -154,14 +158,108 @@ Auth.prototype.auth_local_phone = function (params) {
                     return reject(e);
                 })
         } catch (e) {
-            return reject(e);
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
         }
     });
 };
-Auth.prototype.auth_auth_facebook = function (params) {};
-Auth.prototype.auth_auth_google = function (params) {};
-Auth.prototype.auth_auth_linked = function (params) {};
-Auth.prototype.auth_auth_twitter = function (params) {};
+Auth.prototype.auth_facebook_login = function (params) {};
+Auth.prototype.auth_google_login = function (params) {
+    return new Promise( (resolve, reject) => {
+        try {
+            const user = new this.user(),
+                pars = {};
+            let result = {};
+            pars.g_id = params[0];
+            pars.g_at = params[1];
+            this.utils.verifyParams(pars)
+                .then(() => {
+                    return this.utils.verifyGoogleAccessToken(pars);
+                })
+                .then(res => {
+                    if (res) {
+                        return this.user.aggregate()
+                            .lookup({
+                                from: 'emails',
+                                localField: '_id',
+                                foreignField: 'owner',
+                                as: 'emails' })
+                            .match({'google.id': pars.g_id})
+                            .project({
+                                _id: 1,
+                                google: 1,
+                                status: 1,
+                                emails: {
+                                    email: 1,
+                                    primary: 1
+                                }
+                            })
+                            .exec();
+                    } else reject ();
+                })
+                .then(users => {
+                    if (users) {
+                        if (users.length === 0) {
+                            return reject({
+                                code: 32610,
+                                message: 'User not exists.'
+                            });
+                        } else if (users.length === 1 && users[0].emails.length > 0) {
+                            result = {
+                                    user: {
+                                        id: users[0]._id.toString(),
+                                        name: users[0].google.name,
+                                        email: users[0].emails[0].email,
+                                        status: users[0].status
+                                    }
+                                };
+                            return this.user.update({'google.id': pars.g_id}, { $set: {
+                                    'google.token': pars.g_at
+                                }});
+                        } else {
+                            this.utils.log('Database error with google id:' + pars.g_id, 0);
+                            return reject({
+                                code: 32611
+                            });
+                        }
+                    } else {
+                        return reject();
+                    }
+                })
+                .then(updt => {
+                    if (updt && updt.ok === 1) {
+                        return this._getJWT(result.user.id);
+                    } else {
+                        this.utils.log('Database error with update google token:' + pars.g_at
+                            + ' in google user id:' + pars.g_id, 0);
+                        return reject({
+                            code: 32615
+                        });
+                    }
+                })
+                .then(token => {
+                    if (token) {
+                        result.user.token = token;
+                        return resolve(result);
+                    } else return reject();
+                })
+                .catch(e => {
+                    return reject(e);
+                })
+        } catch (e) {
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
+        }
+    });
+};
+Auth.prototype.auth_linked_login = function (params) {};
+Auth.prototype.auth_twitter_login = function (params) {};
 /**
  * @summary Authenticate user by token.
  * @params [
@@ -180,7 +278,7 @@ Auth.prototype.auth_authenticate = function (params) {
             const pars = {};
             pars.token = params[0];
             pars.id = params[1];
-            this._paramsVerify(pars)
+            this.utils.verifyParams(pars)
                 .then(() => {
                     return this._verifyJWT(pars.token);
                 })
@@ -199,7 +297,11 @@ Auth.prototype.auth_authenticate = function (params) {
                     return reject(e);
                 })
         } catch (e) {
-            return reject(e);
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
         }
     })
 };
@@ -213,7 +315,11 @@ Auth.prototype._getJWT = function (id) {
             });
             resolve(token);
         } catch (e) {
-            return reject(e);
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
         }
     })
 };
@@ -232,7 +338,11 @@ Auth.prototype._verifyJWT = function (token) {
                 }
             });
         } catch (e) {
-            return reject(e);
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
         }
     })
 };
@@ -268,46 +378,13 @@ Auth.prototype._verifyPassword = function (password, array, field) {
             };
             authFunc(0, array);
         } catch (e) {
-            return reject(e);
+            this.log(e.message, 0);
+            return reject({
+                code: 32609,
+                message: ''
+            });
         }
     });
-};
-Auth.prototype._paramsVerify = function (params) {
-    return new Promise( (resolve, reject) => {
-        const verify = {
-            password: (value) => {
-                return value && value.length >= 8 && value.length < 256;
-            },
-            email: (value) => {
-                return value && value.length < 256
-                    && null !== value.match
-                    (/[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/);
-            },
-            phone: (value) => {
-                return value && value.length < 256
-                    && null !== value.match
-                    (/^\+\d{12}$/);
-            },
-            third: (value) => {
-                return value && value.length > 0 && value.length < 50;
-            },
-            id: (value) => {
-                return value && value.length > 0 && value.length < 256;
-            },
-            token: (value) => {
-                return value && value.length > 0 && value.length < 65000;
-            }
-        };
-        try {
-            const keys = Object.keys(params);
-            for (let i = 0; i < keys.length; i++)
-                if (!verify[keys[i]] || !verify[keys[i]](params[keys[i]]))
-                    reject('Wrong field ' + keys[i]);
-            resolve();
-        } catch (e) {
-            return reject(e.message);
-        }
-    })
 };
 Auth.prototype.setKey = function (key) {
     this._key = key;

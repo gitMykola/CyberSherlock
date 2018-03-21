@@ -121,11 +121,42 @@ describe('User, profile models test',()=> {
             log: console.log
         });
         if (stateDB) {
-            Email.find().populate('owner', 'password _id').exec()
+            User.aggregate()
+                .lookup({
+                    from: 'emails',
+                    localField: '_id',
+                    foreignField: 'owner',
+                    as: 'emails' })
+                .lookup({
+                    from: 'profiles',
+                    localField: '_id',
+                    foreignField: 'owner',
+                    as: 'profiles'
+                })
+                .match({'google.id': '109265904531099102897'})
+                .project({
+                    _id: 1,
+                    google: 1,
+                    emails: {
+                        email: 1,
+                        status: 1,
+                        primary: 1
+                    },
+                    status: 1,
+                    profiles: 1
+                })
+                .exec()
                 .then(users => {
                     users.forEach(user => console
-                        .log(user.email + ' \n'
-                            + user.owner.verifyPassword('') + '\n' + user.owner.password));
+                        .log(users.length));
+                    console.dir(users.length ? users : 'no users');
+                    return true;/*User.update({'google.id': '109265904531099102897'}, { $set: {
+                        'google.token': 'YZbUbI1_-D'
+                        }})*/
+                    //done();
+                })
+                .then(user => {
+                    console.dir(user);
                     done();
                 })
                 .catch(e => {

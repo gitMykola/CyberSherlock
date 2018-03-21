@@ -41,7 +41,13 @@
       "profileURL": "https://graph.facebook.com/v2.5/me?fields=first_name,last_name,email",
       "profileFields": ["id", "email", "name"]
     },
-    "google": {},
+    "google": {
+      "apiKey": "AIzaSyCQqiOB_uS2YEbV5d9vsPUpb4s5VavxulQ",
+      "clientId": "614754642660-hhpv7vv258h3f4h55uavv5glnhb46ctu.apps.googleusercontent.com",
+      "clientSecret": "460dDbvoTichx4JLr4E_RDse",
+      "scopes": "profile",
+      "tokenURL": "https://www.googleapis.com/oauth2/v3/tokeninfo?access_token="
+    },
     "linked": {},
     "twitter": {}
   }
