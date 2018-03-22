@@ -508,41 +508,62 @@ User.prototype._create_user_google = function (pars) {
     return new Promise( (resolve, reject)=> {
         const newUser = new this.user(),
             newEmail = new this.email();
-        this.email.find({email: pars.email})
-            .then(emails => {
-                if (emails.length > 0) {
-                    let confirmed = null;
-                    emails.forEach(eml => {
-                        if (eml.status) confirmed = true;
-                    });
-                    if (confirmed) {
-                        return reject({
-                            status: false,
-                            error: 'Email busy.'
-                        });
-                    } else return this.utils.verifyGoogleAccessToken(pars);
+        this.utils.verifyGoogleAccessToken(pars)
+            .then(gresult => {
+                if (!gresult) {
+                    return reject();
                 } else {
-                    newEmail.primary = true;
-                    return this.utils.verifyGoogleAccessToken(pars);
+                    return this.user.aggregate()
+                        .lookup({
+                            from: 'emails',
+                            localField: '_id',
+                            foreignField: 'owner',
+                            as: 'emails' })
+                        .project({
+                            _id: 1,
+                            google: 1,
+                            emails: {
+                                email: 1,
+                                status: 1,
+                                primary: 1
+                            },
+                            status: 1,
+                            profiles: 1
+                        })
+                        .match({
+                            $or: [
+                                {'google.id': pars.g_id},
+                                {
+                                    emails: {
+                                        $elemMatch: {
+                                            email: pars.email,
+                                            status: true
+                                        }
+                                    }
+                                }
+                            ]
+                        })
+                        .exec();
                 }
             })
-            .then(res => {
-                if (res) {
-                    return this.user.find({'google.id': pars.g_id});
-                } else return reject();
-            })
             .then(users => {
-                if (users) {
-                    if (users.length === 0) {
-                        newUser.google.token = pars.g_at;
-                        newUser.google.id = pars.g_id;
-                        newUser.google.name = pars.name || '';
-                        return newUser.save();
-                    } else return reject({
-                        code: 32608,
-                        message: 'User exists.'
+                if (users && users.length > 0) {
+                    return reject({
+                            code: 32624,
+                            error: 'Google id or email busy.'
+                        });
+                } else if (users && users.length === 0) {
+                    newEmail.primary = true;
+                    newUser.google.token = pars.g_at;
+                    newUser.google.id = pars.g_id;
+                    newUser.google.name = pars.name || '';
+                    return newUser.save();
+                } else {
+                    this.log('Database error with google id:' + pars.g_id, 0);
+                    return reject({
+                        code: 32623
                     });
-                } else return reject();
+                }
             })
             .then(user => {
                 if (user) {
