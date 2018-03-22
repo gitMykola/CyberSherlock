@@ -127,13 +127,16 @@ describe('User, profile models test',()=> {
                     localField: '_id',
                     foreignField: 'owner',
                     as: 'emails' })
-                .lookup({
+                /*.lookup({
                     from: 'profiles',
                     localField: '_id',
                     foreignField: 'owner',
                     as: 'profiles'
-                })
-                .match({'google.id': '109265904531099102897'})
+                })*/
+                //.match({'google.id': '109265904531099102897'})
+                .match({emails: {$elemMatch: {
+                    email: 'mykola_borodyn@ecoengineer.in.ua'
+                        }}})
                 .project({
                     _id: 1,
                     google: 1,

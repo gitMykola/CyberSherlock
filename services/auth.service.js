@@ -58,30 +58,64 @@ Auth.prototype.state = function () {
 Auth.prototype.auth_local_email = function (params) {
     return new Promise( (resolve, reject) => {
         try {
-            const pars = {};
+            const pars = {},
+            verUser = new this.user;
+            let result = {};
             pars.password = params[0];
             pars.email = params[1];
             this.utils.verifyParams(pars)
                 .then(() => {
-                    return this.email.find({
-                        email: pars.email
-                    }).populate({
-                        path: 'owner',
-                        select: 'password'
-                    })
+                    return this.user.aggregate()
+                        .lookup({
+                            from: 'emails',
+                            localField: '_id',
+                            foreignField: 'owner',
+                            as: 'emails' })
+                        .project({
+                            _id: 1,
+                            name: 1,
+                            password: 1,
+                            emails: {
+                                email: 1,
+                                primary: 1
+                            },
+                            status: 1
+                        })
+                        .match({
+                            emails: {$elemMatch: {
+                                    email: pars.email,
+                                    primary: true
+                                }}
+                        })
+                        .exec()
                 })
-                .then(emails => {
-                    if (emails) {
-                        return this._verifyPassword(pars.password, emails, 'email');
-                    } else {
-                        return reject('No matches.');
+                .then(users => {
+                    try {
+                        if (users) {
+                            const authUser = users.filter(user => verUser
+                                .verifyPassphrase(pars.password, user.password) === true);
+                            if (authUser.length === 1) {
+                                result = {
+                                    user: {
+                                        id: authUser[0]._id.toString(),
+                                        email: authUser[0].emails[0].email,
+                                        name: authUser[0].name,
+                                        status: authUser[0].status
+                                    }
+                                };
+                                return this._getJWT(authUser[0]._id);
+                            } else {
+                                return reject({
+                                    code: 32606,
+                                    message: 'No matches.'
+                                });
+                            }
+                        } else {
+                            return reject();
+                        }
+                    } catch (e) {
+                        return reject();
                     }
-                })
-                .then(pverf => {
-                    if (pverf) {
-                        result = pverf;
-                        return this._getJWT(pverf.user.id);
-                    } else return reject();
                 })
                 .then(token => {
                     if (token) {
@@ -122,31 +156,64 @@ Auth.prototype.auth_local_email = function (params) {
 Auth.prototype.auth_local_phone = function (params) {
     return new Promise( (resolve, reject) => {
         try {
-            const pars = {};
+            const pars = {},
+            verUser = new this.user;
             let result = {};
             pars.password = params[0];
             pars.phone = params[1];
             this.utils.verifyParams(pars)
                 .then(() => {
-                    return this.phone.find({
-                        phone: pars.phone
-                    }).populate({
-                        path: 'owner',
-                        select: 'password'
-                    })
+                    return this.user.aggregate()
+                        .lookup({
+                            from: 'phones',
+                            localField: '_id',
+                            foreignField: 'owner',
+                            as: 'phones' })
+                        .project({
+                            _id: 1,
+                            name: 1,
+                            password: 1,
+                            phones: {
+                                phone: 1,
+                                primary: 1
+                            },
+                            status: 1
+                        })
+                        .match({
+                            phones: {$elemMatch: {
+                                    phone: pars.phone,
+                                    primary: true
+                                }}
+                        })
+                        .exec()
                 })
-                .then(phones => {
-                    if (phones) {
-                        return this._verifyPassword(pars.password, phones, 'phone');
-                    } else {
-                        return reject('No matches.');
+                .then(users => {
+                    try {
+                        if (users) {
+                            const authUser = users.filter(user => verUser
+                                .verifyPassphrase(pars.password, user.password) === true);
+                            if (authUser.length === 1) {
+                                result = {
+                                    user: {
+                                        id: authUser[0]._id.toString(),
+                                        phone: authUser[0].phones[0].phone,
+                                        name: authUser[0].name,
+                                        status: authUser[0].status
+                                    }
+                                };
+                                return this._getJWT(authUser[0]._id);
+                            } else {
+                                return reject({
+                                    code: 32606,
+                                    message: 'No matches.'
+                                });
+                            }
+                        } else {
+                            return reject();
+                        }
+                    } catch (e) {
+                        return reject();
                     }
-                })
-                .then(pverf => {
-                    if (pverf) {
-                        result = pverf;
-                        return this._getJWT(pverf.user.id);
-                    } else return reject();
                 })
                 .then(token => {
                     if (token) {

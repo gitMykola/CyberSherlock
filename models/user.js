@@ -37,13 +37,11 @@ UserModelSchema.methods.hash = (password) => {
         }
     })
 };
-UserModelSchema.methods.verifyPassword = (password, hash) => {
-    return new Promise ((resolve, reject) => {
+UserModelSchema.methods.verifyPassphrase = (password, hash) => {
         try {
-            resolve(bcrypt.compareSync(password, hash));
+            return bcrypt.compareSync(password, hash);
         } catch (e) {
-            reject(e.message);
+            return false;
         }
-    })
 };
 module.exports = mongoose.model('User', UserModelSchema);

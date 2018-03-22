@@ -279,24 +279,26 @@ User.prototype._create_user_local_with_email = function (pars) {
     return new Promise( (resolve, reject)=> {
         const newUser = new this.user(),
             newEmail = new this.email();
-        this.email.find({email: pars.email})
+        this.email.find({
+            email: pars.email,
+            status: true
+        })
             .then(emails => {
-                if (emails.length > 0) {
-                    let confirmed = null;
-                    emails.forEach(eml => {
-                        if (eml.status) confirmed = true;
-                    });
-                    if (confirmed) {
+                    if (emails && emails.length > 0) {
                         return reject({
-                            status: false,
-                            error: 'Email busy.'
+                            code: 32621,
+                            message: 'Email busy.'
                         });
-                    } else return newUser.hash(pars.password);
-                } else {
-                    newEmail.primary = true;
-                    return newUser.hash(pars.password);
-                }
-            })
+                    } else if (emails && emails.length === 0) {
+                        newEmail.primary = true;
+                        return newUser.hash(pars.password);
+                    } else {
+                        this.log('Database error with email:' + pars.email, 0);
+                        return reject({
+                            code: 32620
+                        });
+                    }
+                })
             .then(hash => {
                 newUser.password = hash;
                 return hash ? newUser.save() : reject();
@@ -339,22 +341,24 @@ User.prototype._create_user_local_with_phone = function (pars) {
     return new Promise( (resolve, reject)=> {
         const newUser = new this.user(),
             newPhone = new this.phone();
-        this.phone.find({phone: pars.phone})
+        this.phone.find({
+            phone: pars.phone,
+            status: true
+        })
             .then(phones => {
-                if (phones.length > 0) {
-                    let confirmed = null;
-                    phones.forEach(phn => {
-                        if (phn.status) confirmed = true;
-                    });
-                    if (confirmed) {
-                        return reject({
-                            status: false,
-                            error: 'Email busy.'
+                if (phones && phones.length > 0) {
+                    return reject({
+                            code: 32622,
+                            message: 'Phone busy.'
                         });
-                    } else return newUser.hash(pars.password);
-                } else {
+                } else if (phones && phones.length === 0) {
                     newPhone.primary = true;
                     return newUser.hash(pars.password);
+                } else {
+                    this.log('Database error with phone:' + pars.phone, 0);
+                    return reject({
+                        code: 32620
+                    });
                 }
             })
             .then(hash => {
@@ -400,43 +404,43 @@ User.prototype._create_user_local_with_email_phone = function (pars) {
         const newUser = new this.user(),
             newEmail = new this.email(),
             newPhone = new this.phone();
-        this.email.find({email: pars.email})
+        this.email.find({
+            email: pars.email,
+            status: true
+        })
             .then(emails => {
-                if (emails.length > 0) {
-                    let confirmed = null;
-                    emails.forEach(eml => {
-                        if (eml.status) confirmed = true;
-                    });
-                    if (confirmed) {
-                        return reject({
-                            status: false,
+                if (emails && emails.length > 0) {
+                    return reject({
+                            code: 32621,
                             error: 'Email busy.'
                         });
-                    } else return this.phone.find({
-                        phone: pars.phone
-                    });
-                } else {
+                } else if (emails && emails.length === 0) {
                     newEmail.primary = true;
                     return this.phone.find({
-                        phone: pars.phone
+                        phone: pars.phone,
+                        status: true
+                    });
+                } else {
+                    this.log('Database error with email:' + pars.email, 0);
+                    return reject({
+                        code: 32620
                     });
                 }
             })
             .then(phones => {
-                if (phones.length > 0) {
-                    let confirmed = false;
-                    phones.forEach(phn => {
-                        if (phn.status) confirmed = true;
-                    });
-                    if (confirmed) {
-                        return reject({
-                            status: false,
+                if (phones && phones.length > 0) {
+                    return reject({
+                            code: 32622,
                             error: 'Phone busy.'
                         });
-                    } else return newUser.hash(pars.password);
-                } else {
+                } else if (phones && phones.length === 0) {
                     newPhone.primary = true;
                     return newUser.hash(pars.password);
+                } else {
+                    this.log('Database error with phone:' + pars.phone, 0);
+                    return reject({
+                        code: 32620
+                    });
                 }
             })
             .then(hash => {
