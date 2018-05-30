@@ -1,36 +1,12 @@
-const config = require('../config'),
-    Log = require('../lib/log'),
-    Utils = require('../lib/utils'),
-    Db = require('../lib/db'),
-    Mailer = require('nodemailer'),
-    Users = require('../models/user'),
-    Emails = require('../models/email'),
-    Phones = require('../models/phone');
-
-function Email () {
-    this._init();
+function Email (appRoot) {
+    this._init(appRoot);
 }
-Email.prototype._init = function () {
+Email.prototype._init = function (appRoot) {
     this.name = 'email';
-    this.log = Log;
-    this.db = Db;
-    this.dbState = this.db.connect({
-        db: config.db,
-        log: this.log
-    });
-    this.mailer = Mailer;
-    this.emailConfig = config.email;
-    this.user = Users;
-    this.email = Emails;
-    this.phone = Phones;
-    this.utils = Utils;
-};
-/**
- * @summary Check service state
- * @return boolean - service state (1 - Ok, 0 - Not working)
- */
-Email.prototype.state = function () {
-    return this.dbState;
+    this.config = require(appRoot + 'config');
+    require(appRoot + 'lib/service').init(this, appRoot, this.config);
+    this.mailer = require('nodemailer');
+    this.emailConfig = this.config.email;
 };
 /**
  * @summary Send email confirmation code
@@ -112,8 +88,5 @@ Email.prototype._send = function (email) {
             }
         });
     })
-};
-Email.prototype.setKey = function (key) {
-    this.key = key;
 };
 module.exports = Email;

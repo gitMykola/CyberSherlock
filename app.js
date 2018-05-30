@@ -57,6 +57,7 @@ function startService (srv) {
         const newRun = runningServices.filter(srv => srv.name !== service.name);
         while (runningServices.length) runningServices.shift();
         newRun.forEach(serv => runningServices.push(serv));
+        // runningServices.concat(newRun);
     });
 }
 

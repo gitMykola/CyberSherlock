@@ -1,47 +1,23 @@
-const config = require('../config'),
-      Log = require('../lib/log'),
-      Db = require('../lib/db'),
-      XHR = require('../lib/xhr'),
-      Utils = require('../lib/utils'),
-      RandomString = require('randomstring'),
-      Users = require('../models/user'),
-      Emails = require('../models/email'),
-      Phones = require('../models/phone'),
-      Profiles = require('../models/profile'),
-      Tasks = require('../models/task');
 /**
  * @summary User service class
  */
-function User () {
-    this._init();
+function User (appRoot) {
+    this._init(appRoot);
 }
 /**
  * @summary Init class
  */
-User.prototype._init = function () {
+User.prototype._init = function (appRoot) {
     this.name = 'user';
-    this.log = Log;
-    this.db = Db;
-    this.dbState = this.db.connect({
-            db: config.db,
-            log: this.log
-        });
-    this.xhr = XHR;
-    this.utils = Utils;
-    this.randomSTR = RandomString;
-    this.user = Users;
-    this.email = Emails;
-    this.phone = Phones;
-    this.profile = Profiles;
-    this.task = Tasks;
-    this.google = config.auth.google;
-};
-/**
-* @summary Check service state
-* @return boolean - service state (1 - Ok, 0 - Not working)
-*/
-User.prototype.state = function () {
-  return this.dbState;
+    this.config = require(appRoot + 'config');
+    require(appRoot + 'lib/service').init(
+        this,
+        appRoot,
+        this.config,
+        ['user', 'phone', 'email', 'profile', 'task'],
+        ['log', 'db', 'xhr', 'utils']);
+    this.randomSTR = require('randomstring');
+    this.google = this.config.auth.google;
 };
 /**
  * @summary Create new user.
@@ -650,9 +626,6 @@ User.prototype._send_phone_confirmation = function (id, phone, code) {
 };
 User.prototype._create_user_third = function (params) {
     return new Promise((resolve, reject) => {})
-};
-User.prototype.setKey = function (key) {
-    this.key = key;
 };
 
 module.exports = User;

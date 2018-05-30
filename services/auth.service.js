@@ -1,41 +1,21 @@
-const Jwt = require('jsonwebtoken'),
-    config = require('../config'),
-    Log = require('../lib/log'),
-    Utils = require('../lib/utils'),
-    Db = require('../lib/db'),
-    Users = require('../models/user'),
-    Emails = require('../models/email'),
-    Phones = require('../models/phone');
 /**
  * @summary Auth service class
+ *
+ * @dependency ['jsonwebtoken']
+ *
  */
-function Auth () {
-    this._init();
+function Auth (appRoot) {
+    this._init(appRoot);
 }
 /**
  * @summary Init class
  */
-Auth.prototype._init = function () {
+Auth.prototype._init = function (appRoot) {
+    this.config = require(appRoot + 'config');
+    require(appRoot + 'lib/service').init(this, appRoot, this.config);
     this.name = 'auth';
-    this.jwt = Jwt;
-    this.tokenExp = config.auth.tokenExp;
-    this.log = Log;
-    this.db = Db;
-    this.dbState = this.db.connect({
-        db: config.db,
-        log: this.log
-    });
-    this.user = Users;
-    this.email = Emails;
-    this.phone = Phones;
-    this.utils = Utils;
-};
-/**
- * @summary Check service state
- * @return boolean - service state (1 - Ok, 0 - Not working)
- */
-Auth.prototype.state = function () {
-    return this.db;
+    this.jwt = require('jsonwebtoken');
+    this.tokenExp = this.config.auth.tokenExp;
 };
 /**
  * @summary Authorize local user wia email.
@@ -234,11 +214,30 @@ Auth.prototype.auth_local_phone = function (params) {
     });
 };
 Auth.prototype.auth_facebook_login = function (params) {};
+/**
+ * @summary Authorize google user wia id & access token.
+ * @params [
+ *          g_id - string, google user id
+ *          g_at - string, google user access token
+ *          ] Array - input params.
+ * @return Promise(
+ *                  resolve - {
+     *                  result: {
+     *                          user: {
+             *                      id: string,
+             *                      email: string,
+             *                      name: string,
+             *                      status: boolean,
+             *                      token: string
+             *                      }
+     *                      }
+ *                  }
+ *              )
+ */
 Auth.prototype.auth_google_login = function (params) {
     return new Promise( (resolve, reject) => {
         try {
-            const user = new this.user(),
-                pars = {};
+            const pars = {};
             let result = {};
             pars.g_id = params[0];
             pars.g_at = params[1];
@@ -452,9 +451,6 @@ Auth.prototype._verifyPassword = function (password, array, field) {
             });
         }
     });
-};
-Auth.prototype.setKey = function (key) {
-    this._key = key;
 };
 
 module.exports = Auth;
