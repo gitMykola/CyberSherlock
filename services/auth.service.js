@@ -340,7 +340,7 @@ Auth.prototype.auth_twitter_login = function (params) {};
  */
 Auth.prototype.auth_authenticate = function (params) {
     return new Promise( (resolve, reject) => {
-        try {
+        try {console.dir(params);
             const pars = {};
             pars.token = params[0];
             pars.id = params[1];

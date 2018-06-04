@@ -57,19 +57,22 @@ const action = (service, req) => {
                         }
                     })
                         .then(resp => {
-                            resolve(resp.result.auth
+                            const response = resp.result.auth
                                 ? xhr({
-                                        url: service.host + ':' + service.port,
-                                        body: req.body
-                                    })
+                                    url: service.host + ':' + service.port,
+                                    body: req.body
+                                })
                                 : Object
                                     .assign(invalidAuth, {
                                         error: {
                                             message: resp.result.message
-                                        }}))
+                                        }});
+                            resolve(response);
                         })
-                        .catch(e => resolve(Object
-                            .assign(invalidAuth, {error: {message: e}})))
+                        .catch(e => {
+                            resolve(Object
+                                .assign(invalidAuth, {error: {message: e}}))
+                        })
                 } else {
                     resolve(invalidServiceAuth);
                 }
