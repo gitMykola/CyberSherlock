@@ -15,7 +15,7 @@ User.prototype._init = function (appRoot) {
         appRoot,
         this.config,
         ['user', 'phone', 'email', 'profile', 'task'],
-        ['log', 'db', 'xhr', 'utils']);
+        ['log', 'db', 'utils']);
     this.randomSTR = require('randomstring');
     this.google = this.config.auth.google;
 };
@@ -574,19 +574,15 @@ User.prototype._create_user_google = function (pars) {
 };
 User.prototype._send_email_confirmation = function (id, email, code) {
    return new Promise( (resolve) => {
-       this.xhr({
-           url: 'http://localhost:3080',
-           body: {
-               jsonrpc: "2.0",
-               id:"user_service",
-               method: "email_send_confirmation_email",
-               params: [
-                   id,
-                   email,
-                   code
+       this.utils.sendToService({
+           id:"user_service",
+           method: "email_send_confirmation_email",
+           params: [
+               id,
+               email,
+               code
                ]
-           }
-       })
+           })
            .then(resp => {
                return resolve({sentEmailConfirmation: true
                });
@@ -600,19 +596,15 @@ User.prototype._send_email_confirmation = function (id, email, code) {
 };
 User.prototype._send_phone_confirmation = function (id, phone, code) {
     return new Promise( (resolve) => {
-        this.xhr({
-            url: 'http://localhost:3080',
-            body: {
-                jsonrpc: "2.0",
-                id:"user_service",
-                method: "phone_send_confirmation_viber",
-                params: [
-                    id,
-                    phone,
-                    code
+        this.utils.sendToService({
+            id:"user_service",
+            method: "phone_send_confirmation_viber",
+            params: [
+                id,
+                phone,
+                code
                 ]
-            }
-        })
+            })
             .then(resp => {
                 return resolve({sentPhoneConfirmation: true
                 });

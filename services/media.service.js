@@ -8,14 +8,14 @@ function Media (appRoot) {
  * @summary Init class
  */
 Media.prototype._init = function (appRoot) {
-    this.name = 'user';
+    this.name = 'media';
     this.config = require(appRoot + 'config');
     require(appRoot + 'lib/service').init(
         this,
         appRoot,
         this.config,
         ['user', 'phone', 'email', 'profile', 'task', 'media'],
-        ['log', 'db', 'xhr', 'utils']);
+        ['log', 'db', 'utils']);
     this.randomSTR = require('randomstring');
 };
 /**
@@ -29,8 +29,46 @@ Media.prototype._init = function (appRoot) {
  */
 Media.prototype.media_auth_create = function(params) {
     return new Promise((resolve, reject) => {
-        console.dir(params);
-        return resolve('Media service OK!');
+        try {
+            const self = this;
+            const data = JSON.parse(params[0]);
+            let newMedia = {};
+            this.utils.verifyParams(data)
+                .then(() => {
+                    newMedia = new self.media(data);
+                    return newMedia.save();
+                })
+                .then(media => {
+                    if(!media) {
+                        return reject(false);
+                    } else {
+                        self.utils.sendToService({
+                            method: 'monitor_new_media',
+                            params: [{
+                                id: newMedia._id,
+                                user: data.user,
+                                location: data.location,
+                                category: data.category,
+                                created: data.created,
+                                filename: data.filename,
+                                url: data.url,
+                                direction: data.direction
+                            }]
+                        })
+                            .catch(err => {
+                                self.log(err, 0);
+                            });
+                        return  resolve({
+                            id: newMedia._id,
+                        });
+                    }
+                })
+                .catch(err => {console.dir(err);
+                    return reject(err);
+                });
+        } catch (error) {console.dir(error);
+            return reject(error);
+        }
     })
 };
 module.exports = Media;

@@ -36,7 +36,7 @@ router.get('/', (req, res)=>{
 });
 router.post('/', (req, res)=>{
     selectInterface(req)
-        .then(result => {
+            .then(result => {
             res.json(result);
         });
 });
