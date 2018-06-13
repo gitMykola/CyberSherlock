@@ -1,65 +1,34 @@
-const chai = require('chai'),
-    chaiHttp = require('chai-http'),
-    should = chai.should(),
-    db = require('../../lib/db'),
-    Service = require('../../services/user.service'),
-    Profile = require('../../models/profile'),
-    mongoose = require('mongoose');
+const path = require('path');
+global.appRoot = path.resolve(__dirname + '/../../');
+const chai = require('chai');
+const expect = chai.expect;
+const User = require(appRoot + '/services/user.service');
+const userService = new User(appRoot);
+const testData = require(appRoot + '/test/testData.json');
 
-describe('User, profile models test',()=> {
-    it('user, profile create', (done) => {
-        db();
-        const service = new Service(),
-            params = [
-            'somepass23',
-            'bob@gmail.com',
-            '+380949507777'
-        ];
-        service.user_create(params)
-            .then(user => {
-                console.dir(user);
-                done();
-            })
-            .catch(e => {
-                console.dir(e);
-                done();
-            })
+describe('User service',async () => {
+    it('_remove_user', async () => {
+        const removedUser = await userService._remove_user({
+            email: testData.user.email,
+            phone: testData.user.phone,
+            password: testData.user.password
+        });
+        console.dir(removedUser);
+        return true;
     });
-    it('user, promises', (done) => {
-        db();
-        const service = new Service(),
-            params = [
-                'somepass23',
-                'bib@gmail.com',
-                '+380949507774'
-            ];
-        service.user_create(params)
-            .then(user => {
-                console.dir(user);
-                done();
-            })
-            .catch(e => {
-                console.dir(e);
-                done();
-            })
+    it('user_create_local', async () => {
+        const user = await userService.user_create_local([
+            testData.user.password,
+            testData.user.email,
+            testData.user.phone
+        ]);
+        console.dir(user);
+        expect(user).to.be.an('object')
+        .that.have.all
+        .keys(['status', 'user', 'sentPhoneConfirmation', 'sentEmailConfirmation']);
+        expect(user).to.include({status: 'success'});
+        expect(user.user).to.be.an('object')
+        .that.have.all.keys(['id', 'email', 'phone']);
+        return true;
     });
-    it('user_auth_create_email', (done) => {
-        const service = new Service(),
-            params = [
-                '5a9808f0e912b9481e15deb8',
-                'mykola_borodyn@ecoengineer.in.ua'
-            ];
-        service.user_auth_create_email(params)
-            .then(user => {
-                console.dir(user);
-                done();
-            })
-            .catch(e => {
-                console.dir(e);
-                done();
-            })
-    });
-    it('user_auth_create_email via http', done => {
-
-    })
 });

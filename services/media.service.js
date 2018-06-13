@@ -12,10 +12,13 @@ Media.prototype._init = function (appRoot) {
     this.config = require(appRoot + 'config');
     require(appRoot + 'lib/service').init(
         this,
-        appRoot,
-        this.config,
-        ['user', 'phone', 'email', 'profile', 'task', 'media'],
-        ['log', 'db', 'utils']);
+        {
+            appRoot: appRoot,
+            config: this.config,
+            models: ['user', 'phone', 'email', 'profile', 'task', 'media'],
+            libs: ['log', 'db', 'utils']
+
+        });
     this.randomSTR = require('randomstring');
 };
 /**

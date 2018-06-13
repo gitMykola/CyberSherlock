@@ -3,8 +3,13 @@ function Email (appRoot) {
 }
 Email.prototype._init = function (appRoot) {
     this.name = 'email';
-    this.config = require(appRoot + 'config');
-    require(appRoot + 'lib/service').init(this, appRoot, this.config);
+    this.config = require(appRoot + '/config');
+    require(appRoot + 'lib/service').init(this, {
+        appRoot: appRoot,
+        config: this.config,
+        models: ['user', 'email', 'phone'],
+        libs: ['log', 'db', 'utils']
+    });
     this.mailer = require('nodemailer');
     this.emailConfig = this.config.email;
 };

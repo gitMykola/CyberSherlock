@@ -12,10 +12,12 @@ Monitor.prototype._init = function (appRoot) {
     this.config = require(appRoot + 'config');
     require(appRoot + 'lib/service').init(
         this,
-        appRoot,
-        this.config,
-        ['user', 'phone', 'email', 'profile', 'task', 'media'],
-        ['log', 'db', 'utils', 'takeFreePort']);
+        {
+            appRoot: appRoot,
+            config: this.config,
+            models: ['user', 'phone', 'email', 'profile', 'task', 'media'],
+            libs: ['log', 'db', 'utils', 'takeFreePort']
+        });
     this.randomSTR = require('randomstring');
     this._initSocket();
 };
@@ -72,7 +74,7 @@ Monitor.prototype.monitor_auth_get_port = function() {
     return this.socketPort;
 };
 /**
- * @summary Born new media.
+ * @summary Broadcast 'New medias'.
  * @params [
  *          media: {
  *

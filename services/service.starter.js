@@ -28,6 +28,10 @@ const express = require('express'),
         body.params = body.params || [];
         body.id = body.id || null;
         try {
+            if(!service.state()) onError({
+                code: 32606,
+                message: 'State failure! Restart...'
+            });
             if (service[body.method]) {
                 service[body.method](body.params)
                     .then(result => res.json({

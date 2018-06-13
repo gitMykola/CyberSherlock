@@ -9,13 +9,15 @@ function User (appRoot) {
  */
 User.prototype._init = function (appRoot) {
     this.name = 'user';
-    this.config = require(appRoot + 'config');
-    require(appRoot + 'lib/service').init(
+    this.config = require(appRoot + '/config');
+    require(appRoot + '/lib/service').init(
         this,
-        appRoot,
-        this.config,
-        ['user', 'phone', 'email', 'profile', 'task'],
-        ['log', 'db', 'utils']);
+        {
+            appRoot: appRoot,
+            config: this.config,
+            models: ['user', 'phone', 'email', 'profile', 'task'],
+            libs: ['log', 'db', 'utils']
+        });
     this.randomSTR = require('randomstring');
     this.google = this.config.auth.google;
 };
@@ -450,14 +452,14 @@ User.prototype._create_user_local_with_email_phone = function (pars) {
                             return Object.assign({
                                 status: 'success',
                                 user: {
-                                    id: newUser._id,
+                                    id: newUser._id.toString(),
                                     email: newEmail.email
                                 }
                             }, resph);
                         })
                         .then(resp => {
                             this._send_email_confirmation(
-                                newUser._id,
+                                newUser._id.toString(),
                                 newEmail.email,
                                 newEmail.code
                             )
@@ -618,6 +620,37 @@ User.prototype._send_phone_confirmation = function (id, phone, code) {
 };
 User.prototype._create_user_third = function (params) {
     return new Promise((resolve, reject) => {})
+};
+User.prototype._remove_user = async function(params) {
+        try {
+            const self = this;
+            if (! await self.utils.verifyParams(params)) return false;
+            if(!params.id) {
+                if(!params.email || !params.phone) {
+                    this.utils.log('_remove_user not accept params '
+                        + JSON.stringify(params) , 1);
+                    return false;
+                } else {
+                    const remEmails = await self.email.find({email: params.email});
+                    const remPhones = await self.phone.find({phone: params.phone});
+                    remEmails.forEach(email => {
+                        remPhones.forEach(phone => {
+                            if (phone.owner.toString() === email.owner.toString()) {
+                                params.id = phone.owner.toString();
+                            }
+                        })
+                    });
+                }
+            }
+            await self.user.deleteOne({_id: params.id});
+            await self.email.deleteMany({owner: params.id});
+            await self.phone.deleteMany({owner: params.id});
+            await self.profile.deleteMany({user: params.id});
+            return true;
+        } catch (error) {
+            this.utils.log(error, 0);
+            return false;
+        }
 };
 
 module.exports = User;

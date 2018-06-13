@@ -11,8 +11,13 @@ function Auth (appRoot) {
  * @summary Init class
  */
 Auth.prototype._init = function (appRoot) {
-    this.config = require(appRoot + 'config');
-    require(appRoot + 'lib/service').init(this, appRoot, this.config);
+    this.config = require(appRoot + '/config');
+    require(appRoot + 'lib/service').init(this, {
+        appRoot: appRoot,
+        config: this.config,
+        models: ['user', 'email', 'phone'],
+        libs: ['log', 'db', 'utils']
+    });
     this.name = 'auth';
     this.jwt = require('jsonwebtoken');
     this.tokenExp = this.config.auth.tokenExp;

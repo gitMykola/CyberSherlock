@@ -1,25 +1,18 @@
-const should = require('should'),
-    db = require('../../lib/db'),
-    Service = require('../../services/email.service'),
-    mongoose = require('mongoose');
+const path = require('path');
+global.appRoot = path.resolve(__dirname + '/../../');
+const chai = require('chai');
+const expect = chai.expect;
+const Email = require(appRoot + '/services/email.service');
+const emailService = new Email(appRoot);
+const testData = require(appRoot + '/test/testData.json');
 
-describe('Email test',()=> {
-    it('send email', (done) => {
-        db();
-        const service = new Service(),
-            params = [
-                '5a9808f0e912b9481e15deb8',
-                'mykola_borodyn@ecoengineer.in.ua',
+describe('Email test',async () => {
+    it('send email', async () => {
+        const params = [
+                '5b212d12423457734dbf7852',
+                testData.user.email,
                 'kreFgn'
             ];
-        service.email_send_confirmation_email(params)
-            .then(user => {
-                console.dir(user);
-                done();
-            })
-            .catch(e => {
-                console.dir(e);
-                done();
-            })
+        const confirmEmail = service.email_send_confirmation_email(params)
     });
 });
