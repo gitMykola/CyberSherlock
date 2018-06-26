@@ -44,7 +44,7 @@ User.prototype.user_create_local = function (params) {
                             ._create_user_local_with_email_phone(pars));
                     } else if (pars.email) {
                         return resolve(this
-                            ._create_user_local_with_email(pars));
+                            ._create_user_local_with_email_(pars));
                     } else return resolve(this
                         ._create_user_local_with_phone(pars));
                 })
@@ -314,6 +314,41 @@ User.prototype._create_user_local_with_email = function (pars) {
                 return reject(e)
             });
     })
+};
+User.prototype._create_user_local_with_email_ = async function (pars) {
+        const newUser = new this.user(),
+            newEmail = new this.email();
+        const emails = await this.email.find({
+            email: pars.email,
+            status: true
+        });
+        if (emails.length !== 0) {
+            if (emails.length > 0) {
+                throw new this.errors.userError(`Email ${pars.email} busy`);
+            } else {
+                throw new this.errors.serviceError(`Email ${pars.email} error`);
+            }
+        } else {
+            newEmail.primary = true;
+            newUser.password = await newUser.hash(pars.password);
+            const user = await newUser.save();
+            newEmail.owner = newUser._id;
+            newEmail.email = pars.email;
+            newEmail.code = this.randomSTR.generate(6);
+            await newEmail.save();
+            const emailConfirmation = await this._send_email_confirmation(
+                newUser._id,
+                newEmail.email,
+                newEmail.code
+            );
+            return Object.assign({
+                status: 'success',
+                user: {
+                    id: newUser._id,
+                    email: newEmail.email
+                }
+            }, emailConfirmation);
+        }
 };
 User.prototype._create_user_local_with_phone = function (pars) {
     return new Promise( (resolve, reject)=> {

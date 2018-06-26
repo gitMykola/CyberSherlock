@@ -15,6 +15,12 @@
       "portPool": [9000, 10000],
       "checkInterval": 600000,
       "protocol": "http"
+    },
+    "errors": {
+      "sendAdmin": true
+    },
+    "admin": {
+      "email": "mborodyn@ecoengineer.in.ua"
     }
   },
   "db": {

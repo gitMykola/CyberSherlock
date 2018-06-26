@@ -8,17 +8,23 @@ const express = require('express'),
     service = new Service(appRoot),
     state = service.state();
     if (!state) onError('Service ' + serv.name + ' state error!');
-    if (typeof state === 'object' && typeof state.then === 'function') state
-        .then(msg => {
-            process.send({
-                state: 'listen',
-                message: serv.name + ' (pid: ' + process.pid + ')' + ' listening'
-                + (msg.port ? ' on ' + msg.port : '')
-            })
-        })
-        .catch(error => {
-            onError(error);
-        });
+    // if (typeof state === 'object' && typeof state.then === 'function') state
+    //     .then(msg => {
+    //         process.send({
+    //             state: 'listen',
+    //             message: serv.name + ' (pid: ' + process.pid + ')' + ' listening'
+    //             + (msg.port ? ' on ' + msg.port : '')
+    //         })
+    //     })
+    //     .catch(error => {
+    //         onError(error);
+    //     });
+
+const path = require('path');
+global.appRoot = path.resolve(__dirname + '/../../');
+const ServiceError = require(appRoot + '/lib/error/ServiceError');
+const ErrorHandler = require(appRoot + '/lib/error/ErrorHandler');
+
     service.setKey(serv.key);
     app.set('port', serv.port);
     app.use(bodyParser.json());
@@ -28,37 +34,34 @@ const express = require('express'),
         body.params = body.params || [];
         body.id = body.id || null;
         try {
-            if(!service.state()) onError({
-                code: 32606,
-                message: 'State failure! Restart...'
-            });
             if (service[body.method]) {
                 service[body.method](body.params)
                     .then(result => res.json({
                         result: result,
                         id: body.id}))
                     .catch(e => {
+                        const err = new ErrorHandler(e);
                         res.json({
-                            error: e,
+                            error: {
+                                message: err.message,
+                                code: err.code
+                            },
                             id: body.id
                         })
                     });
 
             } else {
-                res.json({
-                    error: {
-                        code: 32601,
-                        message: 'Method not found'
-                    },
-                    id: body.id});
+                throw new ServiceError('Method not found');
             }
-        } catch (e) {
+        } catch (error) {
+            const err = new ErrorHandler(error);
             res.json({
                 error: {
-                    code: 32605,
-                    message: 'Service error.'
+                    message: err.message,
+                    code: err.code
                 },
-                id: body.id});
+                id: body.id
+            })
         }
     });
     const server = http.createServer(app);

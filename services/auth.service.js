@@ -248,7 +248,7 @@ Auth.prototype.auth_google_login = function (params) {
             pars.g_at = params[1];
             this.utils.verifyParams(pars)
                 .then(() => {
-                    return this.utils.verifyGoogleAccessToken(pars);
+                    return this.utils.verifyGoogleAccessToken(pars.g_at, pars.g_id);
                 })
                 .then(res => {
                     if (res) {
