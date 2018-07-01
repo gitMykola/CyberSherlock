@@ -1,10 +1,12 @@
+const path = require('path');
+global.appRoot = path.resolve(__dirname + '/../');
+
 const express = require('express'),
     bodyParser = require('body-parser'),
     app = express(),
     http = require('http'),
-    appRoot = __dirname.replace('services', ''),
-    serv = JSON.parse(process.argv[2]),
-    Service = require(__dirname + '/' + serv.script),
+    serv = JSON.parse(process.argv[2]);
+const Service = require(appRoot + '/services/' + serv.script),
     service = new Service(appRoot),
     state = service.state();
     if (!state) onError('Service ' + serv.name + ' state error!');
@@ -20,10 +22,8 @@ const express = require('express'),
     //         onError(error);
     //     });
 
-const path = require('path');
-global.appRoot = path.resolve(__dirname + '/../../');
-const ServiceError = require(appRoot + '/lib/error/ServiceError');
-const ErrorHandler = require(appRoot + '/lib/error/ErrorHandler');
+const ServiceError = require(appRoot + '/lib/errors/ServiceError');
+const ErrorHandler = require(appRoot + '/lib/errors/ErrorHandler');
 
     service.setKey(serv.key);
     app.set('port', serv.port);

@@ -4,7 +4,7 @@ function Phone (appRoot) {
 Phone.prototype._init = function (appRoot) {
     this.name = 'phone';
     this.config = require(appRoot + '/config');
-    require(appRoot + 'lib/service').init(this, {
+    require(appRoot + '/lib/service').init(this, {
         appRoot: appRoot,
         config: this.config,
         models: ['user', 'email', 'phone'],

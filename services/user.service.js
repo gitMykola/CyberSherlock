@@ -267,9 +267,9 @@ User.prototype._create_user_local_with_phone = async function (pars) {
         });
         if (phones.length !== 0) {
             if(phones.length > 0) {
-                throw new this.error.userError(`Phone ${pars.phone} busy`);
+                throw new this.errors.userError(`Phone ${pars.phone} busy`);
             } else {
-                throw new this.error.serviceError(`Phone ${pars.phone} error`);
+                throw new this.errors.serviceError(`Phone ${pars.phone} error`);
             }
         } else {
             newPhone.primary = true;
@@ -303,9 +303,9 @@ User.prototype._create_user_local_with_email_phone = async function (pars) {
         });
         if (emails.length !== 0) {
             if(emails.length > 0) {
-                throw new this.error.userError(`Email ${pars.phone} busy`);
+                throw new this.errors.userError(`Email ${pars.phone} busy`);
             } else {
-                throw new this.error.serviceError(`Email ${pars.phone} error`);
+                throw new this.errors.serviceError(`Email ${pars.phone} error`);
             }
         } else {
             newEmail.primary = true;
@@ -315,9 +315,9 @@ User.prototype._create_user_local_with_email_phone = async function (pars) {
             });
             if (phones.length !== 0) {
                 if(phones.length > 0) {
-                    throw new this.error.userError(`Phone ${pars.phone} busy`);
+                    throw new this.errors.userError(`Phone ${pars.phone} busy`);
                 } else {
-                    throw new this.error.serviceError(`Phone ${pars.phone} error`);
+                    throw new this.errors.serviceError(`Phone ${pars.phone} error`);
                 }
             } else {
                 newPhone.primary = true;
@@ -457,7 +457,7 @@ User.prototype._remove_user = async function(params) {
 };
 User.prototype._check_google_user_by_id_email = async function(id, email) {
     try {
-        const gUser = this.user.aggregate()
+        const gUser = await this.user.aggregate()
             .lookup({
                 from: 'emails',
                 localField: '_id',
@@ -494,7 +494,7 @@ User.prototype._check_google_user_by_id_email = async function(id, email) {
             return true;
         }
     } catch (error) {
-        throw new this.errors.serviceError('Database error with google id:' + pars.g_id + ' ' + error.message);
+        throw new this.errors.serviceError('Database error with google id:' + id + ' ' + error.message);
     }
 };
 

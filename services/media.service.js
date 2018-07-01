@@ -9,8 +9,8 @@ function Media (appRoot) {
  */
 Media.prototype._init = function (appRoot) {
     this.name = 'media';
-    this.config = require(appRoot + 'config');
-    require(appRoot + 'lib/service').init(
+    this.config = require(appRoot + '/config');
+    require(appRoot + '/lib/service').init(
         this,
         {
             appRoot: appRoot,
