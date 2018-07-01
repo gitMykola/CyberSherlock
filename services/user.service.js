@@ -30,35 +30,19 @@ User.prototype._init = function (appRoot) {
  *          ] Array - input params.
  * @return {string} string - translated key value.
  */
-User.prototype.user_create_local = function (params) {
-    return new Promise((resolve, reject) => {
-        try {
-            const pars = {};
-            pars.password = params[0] || '';
-            if (params[1] && params[1].length) pars.email = params[1];
-            if (params[2] && params[2].length) pars.phone = params[2];
-            this.utils.verifyParams(pars)
-                .then(() => {
-                    if (pars.email && pars.phone) {
-                        return resolve(this
-                            ._create_user_local_with_email_phone(pars));
-                    } else if (pars.email) {
-                        return resolve(this
-                            ._create_user_local_with_email_(pars));
-                    } else return resolve(this
-                        ._create_user_local_with_phone(pars));
-                })
-                .catch(e => reject(e))
-        } catch (e) {
-            this.log(e.message, 0);
-            return reject({
-                code: 32609,
-                message: ''
-            });
-        }
-    })
+User.prototype.user_create_local = async function (params) {
+    const pars = {};
+    pars.password = params[0] || '';
+    if (params[1] && params[1].length > 0) pars.email = params[1];
+    if (params[2] && params[2].length > 0) pars.phone = params[2];
+    await this.utils.verifyParams(pars);
+    if (pars.email && pars.phone) {
+        return await this._create_user_local_with_email_phone(pars);
+    } else if (pars.email) {
+        return await this._create_user_local_with_email(pars);
+    } else return await this._create_user_local_with_phone(pars);
 };
-User.prototype.user_create_facebook = function (params) {};
+User.prototype.user_create_facebook = async function (params) {};
 /**
  * @summary Create new user with google.
  * @params [
@@ -72,33 +56,19 @@ User.prototype.user_create_facebook = function (params) {};
  *                  | reject - error object
  *              )
  */
-User.prototype.user_create_google = function (params) {
-    return new Promise((resolve, reject) => {
-        try {
-            const pars = {};
-            pars.g_id = params[0] || '';
-            pars.g_at = params[1] || '';
-            pars.email = params[2] || '';
-            if (params[3] && params[3].length) pars.name = params[3];
-            this.utils.verifyParams(pars)
-                .then(() => {
-                        return resolve(this
-                            ._create_user_google(pars));
-                })
-                .catch(e => {
-                    return reject(e)
-                })
-        } catch (e) {
-            this.log(e.message, 0);
-            return reject({
-                code: 32609,
-                message: ''
-            });
-        }
-    })
+User.prototype.user_create_google = async function (params) {
+    const pars = {};
+    pars.g_id = params[0] || '';
+    pars.g_at = params[1] || '';
+    pars.email = params[2] || '';
+    if (params[3] && params[3].length) pars.name = params[3];
+    await this.utils.verifyParams(pars);
+    await this.utils.verifyGoogleAccessToken(pars.g_at, pars.g_id);
+    await this._check_google_user_by_id_email(pars.g_id, pars.email);
+    return await this._create_user_google(pars);
 };
-User.prototype.user_create_linked = function () {};
-User.prototype.user_create_twitter = function () {};
+User.prototype.user_create_linked = async function () {};
+User.prototype.user_create_twitter = async function () {};
 /**
  * @summary Create new user with email.
  * @params [
@@ -253,69 +223,7 @@ User.prototype.user_auth_update = function (params) {
         resolve(this.result);
     })
 };
-User.prototype._create_user_local_with_email = function (pars) {
-    return new Promise( (resolve, reject)=> {
-        const newUser = new this.user(),
-            newEmail = new this.email();
-        this.email.find({
-            email: pars.email,
-            status: true
-        })
-            .then(emails => {
-                    if (emails && emails.length > 0) {
-                        return reject({
-                            code: 32621,
-                            message: 'Email busy.'
-                        });
-                    } else if (emails && emails.length === 0) {
-                        newEmail.primary = true;
-                        return newUser.hash(pars.password);
-                    } else {
-                        this.log('Database error with email:' + pars.email, 0);
-                        return reject({
-                            code: 32620
-                        });
-                    }
-                })
-            .then(hash => {
-                newUser.password = hash;
-                return hash ? newUser.save() : reject();
-            })
-            .then(user => {
-                if (user) {
-                    newEmail.owner = newUser._id;
-                    newEmail.email = pars.email;
-                    newEmail.code = this.randomSTR.generate(6);
-                    return newEmail.save();
-                } else return reject();
-            })
-            .then(email => {
-                if (email) {
-                    this._send_email_confirmation(
-                        newUser._id,
-                        newEmail.email,
-                        newEmail.code
-                    )
-                        .then(resp => {
-                            return resolve(Object.assign({
-                                status: 'success',
-                                user: {
-                                    id: newUser._id,
-                                    email: newEmail.email
-                                }
-                            }, resp));
-                        })
-                        .catch(e => {
-                            return reject(e);
-                        });
-                } else return reject();
-            })
-            .catch(e => {
-                return reject(e)
-            });
-    })
-};
-User.prototype._create_user_local_with_email_ = async function (pars) {
+User.prototype._create_user_local_with_email = async function (pars) {
         const newUser = new this.user(),
             newEmail = new this.email();
         const emails = await this.email.find({
@@ -350,264 +258,124 @@ User.prototype._create_user_local_with_email_ = async function (pars) {
             }, emailConfirmation);
         }
 };
-User.prototype._create_user_local_with_phone = function (pars) {
-    return new Promise( (resolve, reject)=> {
+User.prototype._create_user_local_with_phone = async function (pars) {
         const newUser = new this.user(),
             newPhone = new this.phone();
-        this.phone.find({
+        const phones = await this.phone.find({
             phone: pars.phone,
             status: true
-        })
-            .then(phones => {
-                if (phones && phones.length > 0) {
-                    return reject({
-                            code: 32622,
-                            message: 'Phone busy.'
-                        });
-                } else if (phones && phones.length === 0) {
-                    newPhone.primary = true;
-                    return newUser.hash(pars.password);
-                } else {
-                    this.log('Database error with phone:' + pars.phone, 0);
-                    return reject({
-                        code: 32620
-                    });
+        });
+        if (phones.length !== 0) {
+            if(phones.length > 0) {
+                throw new this.error.userError(`Phone ${pars.phone} busy`);
+            } else {
+                throw new this.error.serviceError(`Phone ${pars.phone} error`);
+            }
+        } else {
+            newPhone.primary = true;
+            newUser.password = await newUser.hash(pars.password);
+            await newUser.save();
+            newPhone.owner = newUser._id;
+            newPhone.phone = pars.phone;
+            newPhone.code = this.randomSTR.generate(6);
+            await newPhone.save();
+            const phoneConfirmation = await this._send_phone_confirmation(
+                newUser._id,
+                newPhone.phone,
+                newPhone.code
+            );
+            return Object.assign({
+                status: 'success',
+                user: {
+                    id: newUser._id,
+                    phone: newPhone.phone
                 }
-            })
-            .then(hash => {
-                newUser.password = hash;
-                return hash ? newUser.save() : reject();
-            })
-            .then(user => {
-                if (user) {
-                    newPhone.owner = newUser._id;
-                    newPhone.phone = pars.phone;
-                    newPhone.code = this.randomSTR.generate(6);
-                    return newPhone.save();
-                } else return reject();
-            })
-            .then(phone => {
-                if (phone) {
-                    this._send_phone_confirmation(
-                        newUser._id,
-                        newPhone.phone,
-                        newPhone.code
-                    )
-                        .then(resp => {
-                            return resolve(Object.assign({
-                                status: 'success',
-                                user: {
-                                    id: newUser._id,
-                                    phone: newPhone.phone
-                                }
-                            }, resp));
-                        })
-                        .catch(e => {
-                            return reject(e);
-                        });
-                } else return reject();
-            })
-            .catch(e => {
-                return reject(e)
-            });
-    })
+            }, phoneConfirmation);
+        }
 };
-User.prototype._create_user_local_with_email_phone = function (pars) {
-    return new Promise( (resolve, reject)=> {
+User.prototype._create_user_local_with_email_phone = async function (pars) {
         const newUser = new this.user(),
             newEmail = new this.email(),
             newPhone = new this.phone();
-        this.email.find({
+        const emails = await this.email.find({
             email: pars.email,
             status: true
-        })
-            .then(emails => {
-                if (emails && emails.length > 0) {
-                    return reject({
-                            code: 32621,
-                            error: 'Email busy.'
-                        });
-                } else if (emails && emails.length === 0) {
-                    newEmail.primary = true;
-                    return this.phone.find({
-                        phone: pars.phone,
-                        status: true
-                    });
-                } else {
-                    this.log('Database error with email:' + pars.email, 0);
-                    return reject({
-                        code: 32620
-                    });
-                }
-            })
-            .then(phones => {
-                if (phones && phones.length > 0) {
-                    return reject({
-                            code: 32622,
-                            error: 'Phone busy.'
-                        });
-                } else if (phones && phones.length === 0) {
-                    newPhone.primary = true;
-                    return newUser.hash(pars.password);
-                } else {
-                    this.log('Database error with phone:' + pars.phone, 0);
-                    return reject({
-                        code: 32620
-                    });
-                }
-            })
-            .then(hash => {
-                newUser.password = hash;
-                return hash ? newUser.save() : reject();
-            })
-            .then(user => {
-                if (user) {
-                    newEmail.owner = newUser._id;
-                    newEmail.email = pars.email;
-                    newEmail.code = this.randomSTR.generate(6);
-                    return newEmail.save();
-                } else return reject();
-            })
-            .then(email => {
-                if (email) {
-                    newPhone.owner = newUser._id;
-                    newPhone.phone = pars.phone;
-                    newPhone.code = this.randomSTR.generate(6);
-                    return newPhone.save();
-                } else return reject();
-            })
-            .then(phone => {
-                if (phone) {
-                    this._send_phone_confirmation(
-                        newUser._id,
-                        newPhone.phone,
-                        newPhone.code
-                    )
-                        .then(resph => {
-                            return Object.assign({
-                                status: 'success',
-                                user: {
-                                    id: newUser._id.toString(),
-                                    email: newEmail.email
-                                }
-                            }, resph);
-                        })
-                        .then(resp => {
-                            this._send_email_confirmation(
-                                newUser._id.toString(),
-                                newEmail.email,
-                                newEmail.code
-                            )
-                                .then(respe => {
-                                    resp.user.phone = newPhone.phone;
-                                    return resolve(Object
-                                        .assign(resp, respe));
-                                })
-                                .catch(e => {
-                                    return reject(e);
-                                });
-                        })
-                        .catch(e => {
-                            return reject(e);
-                        });
-                } else return reject();
-            })
-            .catch(e => {
-                return reject(e)
+        });
+        if (emails.length !== 0) {
+            if(emails.length > 0) {
+                throw new this.error.userError(`Email ${pars.phone} busy`);
+            } else {
+                throw new this.error.serviceError(`Email ${pars.phone} error`);
+            }
+        } else {
+            newEmail.primary = true;
+            const phones = await this.phone.find({
+                phone: pars.phone,
+                status: true
             });
-    })
+            if (phones.length !== 0) {
+                if(phones.length > 0) {
+                    throw new this.error.userError(`Phone ${pars.phone} busy`);
+                } else {
+                    throw new this.error.serviceError(`Phone ${pars.phone} error`);
+                }
+            } else {
+                newPhone.primary = true;
+                newUser.password = await newUser.hash(pars.password);
+                await newUser.save();
+                newEmail.owner = newUser._id;
+                newEmail.email = pars.email;
+                newEmail.code = this.randomSTR.generate(this.config.email.codeLength);
+                await newEmail.save();
+                newPhone.owner = newUser._id;
+                newPhone.phone = pars.phone;
+                newPhone.code = this.randomSTR.generate(this.config.phone.codeLength);
+                newPhone.save();
+                const phoneConfirmation = await this._send_phone_confirmation(
+                    newUser._id,
+                    newPhone.phone,
+                    newPhone.code
+                );
+                const emailConfirmation = await this._send_email_confirmation(
+                    newUser._id.toString(),
+                    newEmail.email,
+                    newEmail.code
+                );
+                return Object.assign({
+                    status: 'success',
+                    user: {
+                        id: newUser._id,
+                        phone: newPhone.phone,
+                        email: newEmail.email
+                    }
+                }, phoneConfirmation, emailConfirmation);
+            }
+        }
 };
-User.prototype._create_user_google = function (pars) {
-    return new Promise( (resolve, reject)=> {
+User.prototype._create_user_google = async function (pars) {
         const newUser = new this.user(),
             newEmail = new this.email();
-        this.utils.verifyGoogleAccessToken(pars)
-            .then(gresult => {
-                if (!gresult) {
-                    return reject();
-                } else {
-                    return this.user.aggregate()
-                        .lookup({
-                            from: 'emails',
-                            localField: '_id',
-                            foreignField: 'owner',
-                            as: 'emails' })
-                        .project({
-                            _id: 1,
-                            google: 1,
-                            emails: {
-                                email: 1,
-                                status: 1,
-                                primary: 1
-                            },
-                            status: 1,
-                            profiles: 1
-                        })
-                        .match({
-                            $or: [
-                                {'google.id': pars.g_id},
-                                {
-                                    emails: {
-                                        $elemMatch: {
-                                            email: pars.email,
-                                            status: true
-                                        }
-                                    }
-                                }
-                            ]
-                        })
-                        .exec();
-                }
-            })
-            .then(users => {
-                if (users && users.length > 0) {
-                    return reject({
-                            code: 32624,
-                            error: 'Google id or email busy.'
-                        });
-                } else if (users && users.length === 0) {
-                    newEmail.primary = true;
-                    newUser.google.token = pars.g_at;
-                    newUser.google.id = pars.g_id;
-                    newUser.google.name = pars.name || '';
-                    return newUser.save();
-                } else {
-                    this.log('Database error with google id:' + pars.g_id, 0);
-                    return reject({
-                        code: 32623
-                    });
-                }
-            })
-            .then(user => {
-                if (user) {
-                    newEmail.owner = newUser._id;
-                    newEmail.email = pars.email;
-                    newEmail.code = this.randomSTR.generate(6);
-                    return newEmail.save();
-                } else return reject();
-            })
-            .then(email => {
-                if (email) {
-                    return this._send_email_confirmation(
+            newEmail.primary = true;
+            newUser.google.token = pars.g_at;
+            newUser.google.id = pars.g_id;
+            newUser.google.name = pars.name || '';
+            await newUser.save();
+            newEmail.owner = newUser._id;
+            newEmail.email = pars.email;
+            newEmail.code = this.randomSTR.generate(6);
+            await newEmail.save();
+            const emailConfirmation = await this._send_email_confirmation(
                         newUser._id,
                         newEmail.email,
                         newEmail.code
-                    )
-                } else return reject();
-            })
-            .then(sent => {
-                if (sent) {
-                    return resolve(Object.assign({
+                    );
+            return Object.assign({
                         status: 'success',
                         user: {
                             id: newUser._id,
                             email: newEmail.email
                         }
-                    }, sent));
-                } else return reject();
-            })
-            .catch(e => reject(e));
-    })
+                    }, emailConfirmation);
 };
 User.prototype._send_email_confirmation = function (id, email, code) {
    return new Promise( (resolve) => {
@@ -686,6 +454,48 @@ User.prototype._remove_user = async function(params) {
             this.utils.log(error, 0);
             return false;
         }
+};
+User.prototype._check_google_user_by_id_email = async function(id, email) {
+    try {
+        const gUser = this.user.aggregate()
+            .lookup({
+                from: 'emails',
+                localField: '_id',
+                foreignField: 'owner',
+                as: 'emails' })
+            .project({
+                _id: 1,
+                google: 1,
+                emails: {
+                    email: 1,
+                    status: 1,
+                    primary: 1
+                },
+                status: 1,
+                profiles: 1
+            })
+            .match({
+                $or: [
+                    {'google.id': id},
+                    {
+                        emails: {
+                            $elemMatch: {
+                                email: email,
+                                status: true
+                            }
+                        }
+                    }
+                ]
+            })
+            .exec();
+        if (gUser.length !== 0) {
+            throw new this.errors.userError('Google id or email busy.');
+        } else {
+            return true;
+        }
+    } catch (error) {
+        throw new this.errors.serviceError('Database error with google id:' + pars.g_id + ' ' + error.message);
+    }
 };
 
 module.exports = User;

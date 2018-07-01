@@ -37,7 +37,11 @@
     "smtpPort": 465,
     "smtpSecure": true,
     "smtpUser": "mborodyn@ecoengineer.in.ua",
-    "smtpPass": "borMyk7"
+    "smtpPass": "borMyk7",
+    "codeLength": 6
+  },
+  "phone":{
+    "codeLength": 6
   },
   "auth": {
     "tokenExp": 3600,
